@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>怪物變身鏡 v3 👾</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap');
+:root{
+  --green:#00ff88;--blue:#00d4ff;--pink:#ff3cac;
+  --yellow:#ffe600;--orange:#ff7f00;
+  --dark:#07071a;--border:rgba(255,255,255,0.12);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-family:'Nunito',sans-serif;color:#fff;}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px);
+  background-size:44px 44px;animation:gridScroll 25s linear infinite;pointer-events:none;
+}
+@keyframes gridScroll{to{background-position:44px 44px;}}
+#app{position:relative;z-index:1;width:100%;height:100%;display:flex;flex-direction:column;}
+/* header */
+#hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;border-bottom:1px solid var(--border);background:rgba(7,7,26,.9);gap:8px;}
+#hdr h1{font-family:'Orbitron',monospace;font-size:clamp(.85rem,3vw,1.3rem);font-weight:900;letter-spacing:.06em;background:linear-gradient(90deg,var(--green),var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap;}
+#version-badge{font-size:.6rem;font-weight:800;background:var(--pink);color:#fff;padding:2px 7px;border-radius:20px;flex-shrink:0;}
+/* status */
+#status-bar{display:flex;align-items:center;gap:7px;font-size:clamp(.62rem,1.8vw,.78rem);background:rgba(0,0,0,.3);padding:4px 12px;flex-shrink:0;border-bottom:1px solid var(--border);}
+#st-dot{width:9px;height:9px;border-radius:50%;background:#555;box-shadow:0 0 5px #555;flex-shrink:0;transition:background .3s,box-shadow .3s;}
+#st-dot.green{background:var(--green);box-shadow:0 0 8px var(--green);}
+#st-dot.yellow{background:var(--yellow);box-shadow:0 0 8px var(--yellow);animation:blink .8s ease-in-out infinite;}
+#st-dot.red{background:#ff3344;box-shadow:0 0 8px #ff3344;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+#st-txt{color:rgba(255,255,255,.75);flex:1;}
+#dbg-ball{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0;animation:bounce .55s ease-in-out infinite alternate;}
+#dbg-ball.dead{background:#ff3344;animation:none;}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-5px);}}
+/* tabs */
+#tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--border);background:rgba(7,7,26,.9);}
+.tab{flex:1;padding:9px 4px;font-family:'Nunito',sans-serif;font-weight:800;font-size:clamp(.65rem,2vw,.82rem);background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;letter-spacing:.03em;border-bottom:2.5px solid transparent;transition:color .2s,border-color .2s;}
+.tab.active{color:#fff;border-bottom-color:var(--green);}
+/* content */
+#content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.panel{display:none;flex-direction:column;align-items:center;flex:1;overflow:hidden;width:100%;}
+.panel.active{display:flex;}
+/* canvas areas */
+#canvas-wrap,#det-canvas-wrap{flex:1;width:100%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:0;}
+/* AR controls */
+#ar-controls{flex-shrink:0;width:100%;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:7px;padding:8px 10px env(safe-area-inset-bottom,12px);background:rgba(7,7,26,.97);border-top:1px solid var(--border);}
+/* detect legend */
+#det-legend{flex-shrink:0;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:8px 10px env(safe-area-inset-bottom,10px);background:rgba(7,7,26,.97);border-top:1px solid var(--border);width:100%;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:clamp(.6rem,1.7vw,.72rem);background:rgba(255,255,255,.07);border-radius:20px;padding:3px 10px;}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+/* buttons */
+.btn{font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(.68rem,2.2vw,.85rem);border:none;border-radius:50px;padding:8px 16px;cursor:pointer;letter-spacing:.03em;transition:transform .12s,filter .12s;}
+.btn:active{transform:scale(.93);}
+.btn-green{background:linear-gradient(135deg,var(--green),#00aaff);color:var(--dark);}
+.btn-pink{background:linear-gradient(135deg,var(--pink),#ff6600);color:#fff;}
+.btn-yellow{background:linear-gradient(135deg,var(--yellow),var(--orange));color:var(--dark);}
+.btn-purple{background:linear-gradient(135deg,#9900ff,var(--blue));color:#fff;}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);}
+/* alpha slider */
+#alpha-slider{-webkit-appearance:none;appearance:none;width:80px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);outline:none;cursor:pointer;}
+#alpha-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;}
+/* flash */
+#flash{position:fixed;inset:0;z-index:200;background:#fff;opacity:0;pointer-events:none;}
+#flash.pop{animation:flashAnim .35s ease-out forwards;}
+@keyframes flashAnim{0%{opacity:.9;}100%{opacity:0;}}
+/* snapshot */
+#snap-wrap{position:absolute;top:8px;right:8px;z-index:20;display:none;flex-direction:column;align-items:center;gap:4px;}
+#snap-img{width:80px;border-radius:10px;border:2px solid var(--yellow);}
+#btn-dl{font-size:.62rem;background:var(--yellow);color:var(--dark);border:none;border-radius:20px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;}
+/* hidden video */
+#cam-video{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;}
+/* template panel */
+#panel-template{overflow-y:auto;padding:16px;gap:14px;align-items:stretch;}
+.tpl-header{text-align:center;padding:8px 0 4px;}
+.tpl-header h2{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(1rem,3vw,1.4rem);background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.tpl-header p{font-size:clamp(.7rem,2vw,.82rem);color:rgba(255,255,255,.5);margin-top:4px;}
+#template-canvas-wrap{display:flex;justify-content:center;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);border-radius:18px;padding:16px;}
+#templateCanvas{border-radius:8px;max-width:100%;height:auto;}
+.tpl-instructions{background:rgba(0,255,136,.06);border:1.5px solid rgba(0,255,136,.2);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;}
+.tpl-instructions h3{font-family:'Orbitron',monospace;font-size:clamp(.72rem,2vw,.85rem);color:var(--green);letter-spacing:.06em;}
+.instr-item{display:flex;align-items:flex-start;gap:8px;font-size:clamp(.68rem,1.8vw,.78rem);color:rgba(255,255,255,.7);line-height:1.55;}
+.instr-num{background:var(--green);color:var(--dark);font-weight:900;font-size:.65rem;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.tpl-btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+#panel-template::-webkit-scrollbar{width:4px;}
+#panel-template::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+#file-input{display:none;}
+
+</style>
+</head>
+<body>
+<div id="flash"></div>
+<video id="cam-video" playsinline muted autoplay></video>
+
+<div id="app">
+  <div id="hdr">
+    <h1>👾 怪物變身鏡</h1>
+    <span id="version-badge">v3.0</span>
+  </div>
+  <div id="status-bar">
+    <div id="st-dot"></div>
+    <span id="st-txt">等待啟動…</span>
+    <div id="dbg-ball"></div>
+  </div>
+  <div id="tabs">
+    <button class="tab active" data-tab="ar">🎭 AR 變身</button>
+    <button class="tab" data-tab="detect">🔍 即時偵測</button>
+    <button class="tab" data-tab="template">📄 面具模板</button>
+  </div>
+  <div id="content">
+
+    <!-- TAB 1 AR -->
+    <div class="panel active" id="panel-ar">
+      <div id="canvas-wrap">
+        <canvas id="arCanvas"></canvas>
+        <div id="snap-wrap">
+          <img id="snap-img" src="" alt="">
+          <div style="font-size:.62rem;color:var(--yellow);">📸 已拍照！</div>
+          <button id="btn-dl">下載</button>
+        </div>
+      </div>
+      <div id="ar-controls">
+        <button class="btn btn-green" id="btn-start">📷 啟動鏡頭</button>
+        <button class="btn btn-pink"  id="btn-upload">🎨 上傳怪物</button>
+        <button class="btn btn-yellow" id="btn-capture">📸 拍照</button>
+        <button class="btn btn-purple" id="btn-flip">🔄 翻轉</button>
+        <span style="font-size:.72rem;color:rgba(255,255,255,.6);">👻</span>
+        <input type="range" id="alpha-slider" min="30" max="255" value="210">
+      </div>
+    </div>
+
+    <!-- TAB 2 Detect -->
+    <div class="panel" id="panel-detect">
+      <div id="det-canvas-wrap">
+        <canvas id="detCanvas"></canvas>
+      </div>
+      <div id="det-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#00ff88;"></div>臉型輪廓</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#00d4ff;"></div>左眼</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff3cac;"></div>右眼</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ffe600;"></div>鼻子</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff7f00;"></div>嘴巴</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#cc88ff;"></div>眉毛</div>
+        <div class="legend-item"><div class="legend-dot" style="border:2px solid #00ff88;border-radius:2px;background:transparent;"></div>邊界框</div>
+      </div>
+    </div>
+
+    <!-- TAB 3 Template -->
+    <div class="panel" id="panel-template">
+      <div class="tpl-header">
+        <h2>🖍️ 怪物面具模板</h2>
+        <p>列印後在虛線區域畫上你的怪物！</p>
+      </div>
+      <div id="template-canvas-wrap">
+        <canvas id="templateCanvas" width="595" height="842"></canvas>
+      </div>
+      <div class="tpl-instructions">
+        <h3>📋 使用說明</h3>
+        <div class="instr-item"><div class="instr-num">1</div><span>下載並列印模板（A4 尺寸）</span></div>
+        <div class="instr-item"><div class="instr-num">2</div><span>在各虛線區域內畫上怪物五官，<b>不要蓋住四角定位框</b></span></div>
+        <div class="instr-item"><div class="instr-num">3</div><span>用手機拍攝整張模板，確保四個角都在畫面內</span></div>
+        <div class="instr-item"><div class="instr-num">4</div><span>回到「AR 變身」，按「上傳怪物」選剛拍的照片</span></div>
+        <div class="instr-item"><div class="instr-num">5</div><span>程式自動偵測定位點，把五官對應到臉部！</span></div>
+      </div>
+      <div class="tpl-btn-row">
+        <button class="btn btn-green" id="btn-dl-template">⬇️ 下載模板 (PNG)</button>
+        <button class="btn btn-ghost" id="btn-print">🖨️ 列印</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<input type="file" id="file-input" accept="image/*">
+
+<!-- p5.js only — NO ml5 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.3/p5.min.js"></script>
+
+<!-- MediaPipe FaceMesh via CDN — works on file:// and https:// -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+<script>
+/* ═══════════════════════════════════════════════
+   怪物變身鏡 v3
+   臉部偵測：MediaPipe FaceMesh（取代 ml5 FaceApi）
+   ✅ 支援 file://、CodePen、GitHub Pages
+   ✅ 478 個特徵點，偵測更快更準
+   ═══════════════════════════════════════════════ */
+
+// ── Globals ──────────────────────────────────
+const video      = document.getElementById('cam-video');
+let   faceMesh   = null;
+let   landmarks  = [];   // 最新一幀的 468 個點 [{x,y,z}, ...]
+let   faceBox    = null; // {x,y,w,h} normalised
+let   camReady   = false;
+let   faceReady  = false;
+let   flipped    = true;
+let   monsterImg = null;
+let   monsterAlpha = 210;
+let   activeTab  = 'ar';
+let   errCount   = 0;
+
+// DOM
+const stDot  = document.getElementById('st-dot');
+const stTxt  = document.getElementById('st-txt');
+const dbgBall= document.getElementById('dbg-ball');
+const flash  = document.getElementById('flash');
+const snapW  = document.getElementById('snap-wrap');
+const snapI  = document.getElementById('snap-img');
+const btnDl  = document.getElementById('btn-dl');
+const fileIn = document.getElementById('file-input');
+const alphaS = document.getElementById('alpha-slider');
+const arCnv  = document.getElementById('arCanvas');
+const detCnv = document.getElementById('detCanvas');
+const arCtx  = arCnv.getContext('2d');
+const detCtx = detCnv.getContext('2d');
+
+function setStatus(cls, msg){
+  stDot.className = cls;
+  stTxt.textContent = msg;
+}
+
+// ── MediaPipe FaceMesh Groups (478 pts) ─────
+// 簡化版 index groups，對應 MediaPipe canonical model
+const MP = {
+  // 臉部輪廓（外圈）
+  silhouette:[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109],
+  // 左眼
+  leftEye:[33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246],
+  // 右眼
+  rightEye:[362,382,381,380,374,373,390,249,263,466,388,387,386,385,384,398],
+  // 左眉
+  leftBrow:[70,63,105,66,107,55,65,52,53,46],
+  // 右眉
+  rightBrow:[300,293,334,296,336,285,295,282,283,276],
+  // 鼻子
+  nose:[168,6,197,195,5,4,1,19,94,2,98,97,2,326,327],
+  // 嘴唇外圈
+  outerLips:[61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146],
+  // 嘴唇內圈
+  innerLips:[78,191,80,81,82,13,312,311,310,415,308,324,318,402,317,14,87,178,88,95],
+};
+
+// ── Canvas resize ────────────────────────────
+function resizeCanvas(cnv){
+  const wrap = cnv.parentElement;
+  cnv.width  = wrap.clientWidth;
+  cnv.height = wrap.clientHeight;
+}
+window.addEventListener('resize', () => {
+  resizeCanvas(arCnv);
+  resizeCanvas(detCnv);
+});
+resizeCanvas(arCnv);
+resizeCanvas(detCnv);
+
+// ── Tab switching ─────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    activeTab = t.dataset.tab;
+    document.getElementById('panel-'+activeTab).classList.add('active');
+    resizeCanvas(arCnv);
+    resizeCanvas(detCnv);
+  });
+});
+
+// ── Alpha slider ──────────────────────────────
+alphaS.addEventListener('input', () => { monsterAlpha = parseInt(alphaS.value); });
+
+// ── Draw loop (rAF) ──────────────────────────
+function drawLoop(){
+  requestAnimationFrame(drawLoop);
+  try {
+    drawAR();
+    if(activeTab === 'detect') drawDetect();
+    dbgBall.classList.remove('dead');
+    errCount = 0;
+  } catch(e){
+    errCount++;
+    console.warn(e);
+    if(errCount > 60){ dbgBall.classList.add('dead'); setStatus('red','❌ 程式錯誤，請重新整理'); }
+  }
+}
+drawLoop();
+
+// ── Helpers ──────────────────────────────────
+function camLayout(cnv){
+  if(!camReady || !video.videoWidth) return null;
+  const vw=video.videoWidth, vh=video.videoHeight;
+  const sc=Math.max(cnv.width/vw, cnv.height/vh);
+  const dw=vw*sc, dh=vh*sc;
+  const dx=(cnv.width-dw)/2, dy=(cnv.height-dh)/2;
+  return {sc,dw,dh,dx,dy,vw,vh};
+}
+
+function lmToCanvas(lm, layout, mirrorW){
+  // lm.x, lm.y are 0-1 normalised to video
+  let px = lm.x * layout.vw * layout.sc + layout.dx;
+  let py = lm.y * layout.vh * layout.sc + layout.dy;
+  if(flipped) px = mirrorW - px;
+  return {x:px, y:py};
+}
+
+// ── TAB 1: AR Draw ────────────────────────────
+function drawAR(){
+  const ctx = arCtx;
+  const W = arCnv.width, H = arCnv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0f0f23';
+  ctx.fillRect(0,0,W,H);
+
+  if(!camReady){
+    ctx.fillStyle='rgba(255,255,255,.5)';
+    ctx.font=`${clamp(13,W*.03,22)}px Nunito,sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('📷 按「啟動鏡頭」開始', W/2, H/2);
+    return;
+  }
+
+  const lay = camLayout(arCnv);
+  if(!lay) return;
+
+  // draw video (mirrored if needed)
+  ctx.save();
+  if(flipped){ ctx.translate(W,0); ctx.scale(-1,1); }
+  ctx.drawImage(video, lay.dx, lay.dy, lay.dw, lay.dh);
+  ctx.restore();
+
+  // overlay monster
+  if(faceReady && landmarks.length > 0){
+    drawMonsterOverlay(ctx, lay, W);
+  }
+
+  // HUD
+  ctx.fillStyle='rgba(0,0,0,.6)';
+  ctx.fillRect(5, H-22, 200, 16);
+  ctx.fillStyle='#00ff88';
+  ctx.font=`${clamp(9,W*.018,13)}px Nunito,sans-serif`;
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  const n = landmarks.length > 0 ? 1 : 0;
+  ctx.fillText(`👤 偵測 ${n} 張臉 | 透明度 ${Math.round(monsterAlpha/255*100)}%`, 8, H-20);
+}
+
+function drawMonsterOverlay(ctx, lay, W){
+  // 取臉部輪廓點算 bounding box
+  const pts = MP.silhouette.map(i => lmToCanvas(landmarks[i], lay, W));
+  const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+  const minX=Math.min(...xs), maxX=Math.max(...xs);
+  const minY=Math.min(...ys), maxY=Math.max(...ys);
+
+  const fw = (maxX-minX)*1.45;
+  const fh = (maxY-minY)*1.65;
+  const fx = minX - (fw-(maxX-minX))/2;
+  const fy = minY - fh*0.20;
+
+  if(monsterImg){
+    ctx.save();
+    ctx.globalAlpha = monsterAlpha/255;
+    ctx.drawImage(monsterImg, fx, fy, fw, fh);
+    ctx.restore();
+  } else {
+    ctx.font = `${fw*.6}px serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('👾', fx+fw/2, fy+fh/2);
+  }
+}
+
+// ── TAB 2: Detection Draw ─────────────────────
+function drawDetect(){
+  const ctx = detCtx;
+  const W = detCnv.width, H = detCnv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0a1e';
+  ctx.fillRect(0,0,W,H);
+
+  if(!camReady){
+    ctx.fillStyle='rgba(255,255,255,.4)';
+    ctx.font=`${clamp(12,W*.028,20)}px Nunito,sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('先在「AR 變身」啟動鏡頭', W/2, H/2-12);
+    ctx.font=`${clamp(10,W*.022,15)}px Nunito,sans-serif`;
+    ctx.fillStyle='rgba(255,255,255,.25)';
+    ctx.fillText('然後切回此頁查看偵測結果', W/2, H/2+14);
+    return;
+  }
+
+  const lay = camLayout(detCnv);
+  if(!lay) return;
+
+  // ✅ 與 AR 分頁一致：套用相同的鏡像翻轉
+  ctx.save();
+  if(flipped){ ctx.translate(W,0); ctx.scale(-1,1); }
+  ctx.drawImage(video, lay.dx, lay.dy, lay.dw, lay.dh);
+  ctx.restore();
+
+  if(!faceReady || landmarks.length === 0) return;
+
+  // lmToCanvas 內部已根據 flipped 做鏡像，W 傳入即可
+
+  // bounding box from silhouette
+  const silPts = MP.silhouette.map(i => lmToCanvas(landmarks[i], lay, W));
+  const xs = silPts.map(p=>p.x), ys = silPts.map(p=>p.y);
+  const bx=Math.min(...xs)-6, by=Math.min(...ys)-6;
+  const bw=Math.max(...xs)-bx+12, bh=Math.max(...ys)-by+12;
+
+  ctx.save();
+  ctx.strokeStyle='rgba(0,255,136,.8)';
+  ctx.lineWidth=2;
+  ctx.setLineDash([6,4]);
+  ctx.strokeRect(bx,by,bw,bh);
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(0,255,136,.9)';
+  ctx.font=`bold ${clamp(9,W*.018,13)}px Nunito,sans-serif`;
+  ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillText('臉部', bx+4, by-2);
+  ctx.restore();
+
+  // draw each group
+  const groups=[
+    {key:'silhouette', color:'#00ff88',  label:'臉型', labelIdx:0,  close:true },
+    {key:'leftBrow',   color:'#cc88ff',  label:'左眉', labelIdx:3,  close:false},
+    {key:'rightBrow',  color:'#cc88ff',  label:'右眉', labelIdx:3,  close:false},
+    {key:'leftEye',    color:'#00d4ff',  label:'左眼', labelIdx:0,  close:true },
+    {key:'rightEye',   color:'#ff3cac',  label:'右眼', labelIdx:0,  close:true },
+    {key:'nose',       color:'#ffe600',  label:'鼻',   labelIdx:0,  close:false},
+    {key:'outerLips',  color:'#ff7f00',  label:'嘴巴', labelIdx:0,  close:true },
+  ];
+
+  for(const g of groups){
+    const idxs = MP[g.key];
+    const pts  = idxs.map(i => lmToCanvas(landmarks[i], lay, W));
+    ctx.save();
+    ctx.strokeStyle = g.color + 'aa';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+    if(g.close) ctx.closePath();
+    ctx.stroke();
+
+    // dots
+    ctx.fillStyle = g.color;
+    pts.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, clamp(2,W*.004,5), 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    // label
+    const lp = pts[g.labelIdx] || pts[0];
+    if(lp){
+      ctx.font=`bold ${clamp(8,W*.016,12)}px Nunito,sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='bottom';
+      const tw = ctx.measureText(g.label).width + 8;
+      ctx.fillStyle='rgba(0,0,0,.7)';
+      ctx.fillRect(lp.x-tw/2, lp.y-16, tw, 14);
+      ctx.fillStyle=g.color;
+      ctx.fillText(g.label, lp.x, lp.y-4);
+    }
+    ctx.restore();
+  }
+}
+
+// ── Start Camera ──────────────────────────────
+document.getElementById('btn-start').addEventListener('click', async () => {
+  setStatus('yellow','啟動攝影機中…');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'user', width:{ideal:1280}, height:{ideal:720}}
+    });
+    video.srcObject = stream;
+    await video.play();
+    camReady = true;
+    setStatus('yellow','載入人臉模型中（約10秒）…');
+    initFaceMesh();
+  } catch(e){
+    setStatus('red','❌ 攝影機被拒絕：'+e.message);
+  }
+});
+
+// ── MediaPipe FaceMesh Init ───────────────────
+function initFaceMesh(){
+  faceMesh = new FaceMesh({
+    locateFile: (file) =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+  });
+
+  faceMesh.setOptions({
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5,
+  });
+
+  faceMesh.onResults((results) => {
+    if(results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0){
+      landmarks = results.multiFaceLandmarks[0]; // 478 points
+      if(!faceReady){
+        faceReady = true;
+        setStatus('green','✅ 就緒！請對準鏡頭 😄');
+      } else {
+        setStatus('green','✅ 偵測到臉！');
+      }
+    } else {
+      landmarks = [];
+      if(faceReady) setStatus('green','👀 找不到臉，調整角度？');
+    }
+  });
+
+  // MediaPipe Camera util — handles the frame loop
+  const mpCamera = new Camera(video, {
+    onFrame: async () => {
+      if(faceMesh) await faceMesh.send({image: video});
+    },
+    width: 1280, height: 720,
+  });
+  mpCamera.start().then(() => {
+    setStatus('yellow','模型初始化中…');
+  }).catch(e => {
+    setStatus('red','❌ MediaPipe 啟動失敗：'+e.message);
+    console.error(e);
+  });
+}
+
+// ── Upload + Green Screen ─────────────────────
+document.getElementById('btn-upload').addEventListener('click',()=>fileIn.click());
+
+fileIn.addEventListener('change',(e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    const oc=document.createElement('canvas');
+    oc.width=img.width; oc.height=img.height;
+    const oc2=oc.getContext('2d');
+    oc2.drawImage(img,0,0);
+    const id=oc2.getImageData(0,0,oc.width,oc.height);
+    removeGreenWhite(id);
+    oc2.putImageData(id,0,0);
+
+    // try marker crop
+    const cropped = detectAndCrop(oc, oc2);
+    monsterImg = cropped || oc;
+    setStatus('green','🎨 怪物已上傳！');
+  };
+  img.src=url;
+  fileIn.value='';
+});
+
+function removeGreenWhite(id){
+  const d=id.data;
+  for(let i=0;i<d.length;i+=4){
+    const r=d[i],g=d[i+1],b=d[i+2];
+    if((g>90&&g>r*1.35&&g>b*1.35)||(r>215&&g>215&&b>215)) d[i+3]=0;
+  }
+}
+
+function detectAndCrop(oc, oc2){
+  try{
+    const W=oc.width, H=oc.height;
+    const id=oc2.getImageData(0,0,W,H);
+    const d=id.data;
+    function isDark(x,y){
+      if(x<0||x>=W||y<0||y>=H) return false;
+      const i=(y*W+x)*4;
+      return d[i]<60&&d[i+1]<60&&d[i+2]<60&&d[i+3]>180;
+    }
+    function findMarker(x0,x1,y0,y1){
+      let minX=x1,maxX=x0,minY=y1,maxY=y0,found=false;
+      for(let y=y0;y<y1;y+=2) for(let x=x0;x<x1;x+=2){
+        if(isDark(x,y)){minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);found=true;}
+      }
+      return found?{cx:(minX+maxX)/2,cy:(minY+maxY)/2}:null;
+    }
+    const qw=Math.floor(W*.22),qh=Math.floor(H*.15);
+    const tl=findMarker(0,qw,0,qh),tr=findMarker(W-qw,W,0,qh);
+    const bl=findMarker(0,qw,H-qh,H),br=findMarker(W-qw,W,H-qh,H);
+    if(!tl||!tr||!bl||!br) return null;
+    const pad=Math.min(W,H)*.02;
+    const cx=Math.max(0,Math.min(tl.cx,bl.cx)+pad);
+    const cy=Math.max(0,Math.min(tl.cy,tr.cy)+pad);
+    const cw=Math.min(W,Math.max(tr.cx,br.cx)-pad)-cx;
+    const ch=Math.min(H,Math.max(bl.cy,br.cy)-pad)-cy;
+    if(cw<10||ch<10) return null;
+    const nc=document.createElement('canvas');
+    nc.width=Math.round(cw); nc.height=Math.round(ch);
+    const nc2=nc.getContext('2d');
+    nc2.drawImage(oc,-cx,-cy);
+    const nid=nc2.getImageData(0,0,nc.width,nc.height);
+    removeGreenWhite(nid);
+    nc2.putImageData(nid,0,0);
+    return nc;
+  }catch(e){return null;}
+}
+
+// ── Capture ───────────────────────────────────
+document.getElementById('btn-capture').addEventListener('click',()=>{
+  if(!camReady){setStatus('yellow','先啟動鏡頭！');return;}
+  flash.classList.remove('pop');void flash.offsetWidth;flash.classList.add('pop');
+  const url=arCnv.toDataURL('image/png');
+  snapI.src=url; snapW.style.display='flex';
+  btnDl.onclick=()=>{const a=document.createElement('a');a.href=url;a.download=`monster_${Date.now()}.png`;a.click();};
+  setStatus('green','📸 拍照成功！');
+});
+
+// ── Flip ──────────────────────────────────────
+document.getElementById('btn-flip').addEventListener('click',()=>{flipped=!flipped;});
+
+// ── Template canvas ───────────────────────────
+(function drawTemplate(){
+  const canvas=document.getElementById('templateCanvas');
+  const ctx=canvas.getContext('2d');
+  const W=595,H=842;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  function drawMarker(x,y){
+    const S=32;
+    ctx.fillStyle='#111';ctx.fillRect(x,y,S,S);
+    ctx.fillStyle='#fff';ctx.fillRect(x+5,y+5,S-10,S-10);
+    ctx.fillStyle='#111';ctx.fillRect(x+10,y+10,S-20,S-20);
+  }
+  const M=24;
+  drawMarker(M,M);drawMarker(W-M-32,M);drawMarker(M,H-M-32);drawMarker(W-M-32,H-M-32);
+  ctx.fillStyle='#111';ctx.font='bold 22px Nunito,sans-serif';ctx.textAlign='center';
+  ctx.fillText('👾 怪物變身鏡 · 面具模板',W/2,74);
+  ctx.font='13px Nunito,sans-serif';ctx.fillStyle='#888';
+  ctx.fillText('在虛線區域內畫上你的怪物五官！不要蓋住四角黑框',W/2,96);
+  const cx=W/2,cy=440,rx=160,ry=200;
+  ctx.save();ctx.setLineDash([8,6]);ctx.strokeStyle='#bbb';ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+  function dRect(x,y,w,h,lbl,col){
+    ctx.save();ctx.setLineDash([6,5]);ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,h);ctx.restore();
+    ctx.fillStyle=col;ctx.font='bold 11px Nunito,sans-serif';ctx.textAlign='center';ctx.fillText(lbl,x+w/2,y-5);
+  }
+  function dEll(x,y,rw,rh,lbl,col){
+    ctx.save();ctx.setLineDash([6,5]);ctx.strokeStyle=col;ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.ellipse(x,y,rw,rh,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+    ctx.fillStyle=col;ctx.font='bold 11px Nunito,sans-serif';ctx.textAlign='center';ctx.fillText(lbl,x,y-rh-6);
+  }
+  dRect(cx-130,cy-110,80,22,'左眉','#9966ff');dRect(cx+50,cy-110,80,22,'右眉','#9966ff');
+  dEll(cx-95,cy-64,48,24,'左眼','#00aaff');dEll(cx+95,cy-64,48,24,'右眼','#ff3cac');
+  dRect(cx-30,cy-30,60,70,'鼻','#ffaa00');
+  dEll(cx,cy+100,72,30,'嘴巴','#ff5500');
+  ctx.save();ctx.setLineDash([4,8]);ctx.strokeStyle='#ddd';ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(cx,cy-160,120,40,0,0,Math.PI);ctx.stroke();ctx.restore();
+  ctx.fillStyle='#bbb';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('額頭',cx,cy-163);
+  ctx.save();ctx.setLineDash([4,6]);ctx.strokeStyle='#ccc';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.ellipse(cx-170,cy,18,35,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx+170,cy,18,35,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+  ctx.fillStyle='#ccc';ctx.font='10px sans-serif';ctx.textAlign='center';
+  ctx.fillText('左耳',cx-170,cy+50);ctx.fillText('右耳',cx+170,cy+50);
+  ctx.fillStyle='#999';ctx.font='italic 10px sans-serif';ctx.fillText('← 在此區域自由創作怪物臉型！',cx,cy+225);
+  ctx.strokeStyle='#ddd';ctx.lineWidth=1;ctx.setLineDash([]);ctx.strokeRect(18,18,W-36,H-36);
+})();
+
+document.getElementById('btn-dl-template').addEventListener('click',()=>{
+  const a=document.createElement('a');
+  a.href=document.getElementById('templateCanvas').toDataURL('image/png',1);
+  a.download='monster_mask_template.png';a.click();
+});
+document.getElementById('btn-print').addEventListener('click',()=>window.print());
+
+// ── Utility ───────────────────────────────────
+function clamp(a,v,b){return Math.min(b,Math.max(a,v));}
+
+</script>
+</body>
+</html>
