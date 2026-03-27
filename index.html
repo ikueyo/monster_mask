@@ -358,22 +358,12 @@ function drawMonsterOverlay(ctx, lay, W){
   const fx = minX - (fw-(maxX-minX))/2;
   const fy = minY - fh*0.20;
 
-<<<<<<< HEAD
   // 只有上傳怪物圖片後才顯示
-=======
->>>>>>> 00b84987cb873d38d9ce10b209babc109d56664a
   if(monsterImg){
     ctx.save();
     ctx.globalAlpha = monsterAlpha/255;
     ctx.drawImage(monsterImg, fx, fy, fw, fh);
     ctx.restore();
-<<<<<<< HEAD
-=======
-  } else {
-    ctx.font = `${fw*.6}px serif`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('👾', fx+fw/2, fy+fh/2);
->>>>>>> 00b84987cb873d38d9ce10b209babc109d56664a
   }
 }
 
@@ -474,18 +464,26 @@ function drawDetect(){
 
 // ── Start Camera ──────────────────────────────
 document.getElementById('btn-start').addEventListener('click', async () => {
-  setStatus('yellow','啟動攝影機中…');
+  if(camReady && faceMesh) return; // 避免重複啟動
+  setStatus('yellow','正在存取相機權限…');
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video:{facingMode:'user', width:{ideal:1280}, height:{ideal:720}}
     });
     video.srcObject = stream;
+    // 確保視訊開始播放
     await video.play();
     camReady = true;
-    setStatus('yellow','載入人臉模型中（約10秒）…');
-    initFaceMesh();
+    
+    if(!faceMesh){
+      setStatus('yellow','載入 AI 模型中…');
+      initFaceMesh();
+    } else {
+      setStatus('green','✅ 攝影機已就緒！');
+    }
   } catch(e){
-    setStatus('red','❌ 攝影機被拒絕：'+e.message);
+    setStatus('red','❌ 攝影機啟動失敗：'+e.message);
+    console.error(e);
   }
 });
 
@@ -504,33 +502,38 @@ function initFaceMesh(){
   });
 
   faceMesh.onResults((results) => {
+    // 只要模型開始回傳結果（不論是否有臉），就表示初始化成功
+    if(!faceReady){
+      faceReady = true;
+      setStatus('green','✅ AI 已就緒，請對準鏡頭 😄');
+    }
+
     if(results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0){
-      landmarks = results.multiFaceLandmarks[0]; // 478 points
-      if(!faceReady){
-        faceReady = true;
-        setStatus('green','✅ 就緒！請對準鏡頭 😄');
-      } else {
-        setStatus('green','✅ 偵測到臉！');
-      }
+      landmarks = results.multiFaceLandmarks[0];
+      setStatus('green','✅ 偵測到臉！');
     } else {
       landmarks = [];
-      if(faceReady) setStatus('green','👀 找不到臉，調整角度？');
+      setStatus('green','👀 找不到臉，調整角度？');
     }
   });
 
-  // MediaPipe Camera util — handles the frame loop
-  const mpCamera = new Camera(video, {
-    onFrame: async () => {
-      if(faceMesh) await faceMesh.send({image: video});
-    },
-    width: 1280, height: 720,
-  });
-  mpCamera.start().then(() => {
-    setStatus('yellow','模型初始化中…');
-  }).catch(e => {
-    setStatus('red','❌ MediaPipe 啟動失敗：'+e.message);
-    console.error(e);
-  });
+  // 手動處理視訊影格，取代 MediaPipe Camera 工具
+  let isProcessing = false;
+  async function predict() {
+    if(camReady && faceMesh && !isProcessing && !video.paused && !video.ended){
+      isProcessing = true;
+      try {
+        await faceMesh.send({image: video});
+      } catch(e){
+        console.warn("AI 處理異常:", e);
+      }
+      isProcessing = false;
+    }
+    requestAnimationFrame(predict);
+  }
+  
+  // 開始偵測循環
+  predict();
 }
 
 // ── Upload + Green Screen ─────────────────────
