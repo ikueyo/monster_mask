@@ -358,12 +358,22 @@ function drawMonsterOverlay(ctx, lay, W){
   const fx = minX - (fw-(maxX-minX))/2;
   const fy = minY - fh*0.20;
 
+<<<<<<< HEAD
   // 只有上傳怪物圖片後才顯示
+=======
+>>>>>>> 00b84987cb873d38d9ce10b209babc109d56664a
   if(monsterImg){
     ctx.save();
     ctx.globalAlpha = monsterAlpha/255;
     ctx.drawImage(monsterImg, fx, fy, fw, fh);
     ctx.restore();
+<<<<<<< HEAD
+=======
+  } else {
+    ctx.font = `${fw*.6}px serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('👾', fx+fw/2, fy+fh/2);
+>>>>>>> 00b84987cb873d38d9ce10b209babc109d56664a
   }
 }
 
