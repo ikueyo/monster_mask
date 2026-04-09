@@ -222,6 +222,38 @@ function setStatus(cls, msg){
   stTxt.textContent = msg;
 }
 
+// ── Camera button state ───────────────────────
+const btnStart = document.getElementById('btn-start');
+function updateCamBtn(state){
+  if(state === 'idle'){
+    btnStart.textContent = '📷 啟動鏡頭';
+    btnStart.className = 'btn btn-green';
+    btnStart.disabled = false;
+  } else if(state === 'loading'){
+    btnStart.textContent = '⏳ 啟動中…';
+    btnStart.className = 'btn btn-ghost';
+    btnStart.disabled = true;
+  } else if(state === 'active'){
+    btnStart.textContent = '⏹ 停止相機';
+    btnStart.className = 'btn btn-pink';
+    btnStart.disabled = false;
+  }
+}
+
+function stopCamera(){
+  if(video.srcObject){
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+  camReady = false;
+  faceReady = false;
+  landmarks = [];
+  faceBox = null;
+  snapW.style.display = 'none';
+  updateCamBtn('idle');
+  setStatus('', '等待啟動…');
+}
+
 // ── MediaPipe FaceMesh Groups (478 pts) ─────
 // 簡化版 index groups，對應 MediaPipe canonical model
 const MP = {
@@ -462,26 +494,36 @@ function drawDetect(){
   }
 }
 
-// ── Start Camera ──────────────────────────────
-document.getElementById('btn-start').addEventListener('click', async () => {
-  if(camReady && faceMesh) return; // 避免重複啟動
+// ── Start / Stop Camera ───────────────────────
+btnStart.addEventListener('click', async () => {
+  // 已啟動 → 停止相機
+  if(camReady){
+    stopCamera();
+    return;
+  }
+  // 啟動中 → 忽略連點
+  if(btnStart.disabled) return;
+
+  updateCamBtn('loading');
   setStatus('yellow','正在存取相機權限…');
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video:{facingMode:'user', width:{ideal:1280}, height:{ideal:720}}
     });
     video.srcObject = stream;
-    // 確保視訊開始播放
     await video.play();
     camReady = true;
-    
+    updateCamBtn('active');
+
     if(!faceMesh){
       setStatus('yellow','載入 AI 模型中…');
       initFaceMesh();
     } else {
+      // 模型已載入（重新啟動相機），直接恢復偵測
       setStatus('green','✅ 攝影機已就緒！');
     }
   } catch(e){
+    updateCamBtn('idle');
     setStatus('red','❌ 攝影機啟動失敗：'+e.message);
     console.error(e);
   }
