@@ -1076,7 +1076,8 @@ document.getElementById('btn-capture').addEventListener('click',()=>{
     countdown--;
     if(countdown<=0){
       clearInterval(countdownTimer); countdownTimer=null; countdown=0;
-      doCapture();
+      // 等兩幀讓 drawLoop 先畫出乾淨畫面（無倒數數字），再拍攝
+      requestAnimationFrame(()=>requestAnimationFrame(doCapture));
     }
   },1000);
 });
