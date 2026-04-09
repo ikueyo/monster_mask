@@ -87,6 +87,12 @@ body::before{
 #panel-template::-webkit-scrollbar{width:4px;}
 #panel-template::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
 #file-input{display:none;}
+/* preset monsters */
+#preset-row{flex-shrink:0;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:5px 10px 3px;background:rgba(7,7,26,.97);}
+.preset-btn{font-size:1.25rem;width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;line-height:1;display:inline-flex;align-items:center;justify-content:center;}
+.preset-btn:hover{transform:scale(1.15);border-color:rgba(0,255,136,.5);}
+.preset-btn.active{border-color:var(--green);box-shadow:0 0 10px rgba(0,255,136,.4);background:rgba(0,255,136,.1);}
+.preset-label{font-size:.62rem;color:rgba(255,255,255,.32);letter-spacing:.02em;}
 
 </style>
 </head>
@@ -120,6 +126,14 @@ body::before{
           <div style="font-size:.62rem;color:var(--yellow);">📸 已拍照！</div>
           <button id="btn-dl">下載</button>
         </div>
+      </div>
+      <div id="preset-row">
+        <span class="preset-label">快速怪物：</span>
+        <button class="preset-btn" data-preset="devil"  title="😈 小惡魔">😈</button>
+        <button class="preset-btn" data-preset="robot"  title="🤖 機器人">🤖</button>
+        <button class="preset-btn" data-preset="alien"  title="👽 外星人">👽</button>
+        <button class="preset-btn" data-preset="skull"  title="💀 骷髏">💀</button>
+        <button class="preset-btn" data-preset="none"   title="清除怪物" style="font-size:.85rem;opacity:.55;">✕</button>
       </div>
       <div id="ar-controls">
         <button class="btn btn-green" id="btn-start">📷 啟動鏡頭</button>
@@ -346,13 +360,7 @@ function drawAR(){
   ctx.fillStyle = '#0f0f23';
   ctx.fillRect(0,0,W,H);
 
-  if(!camReady){
-    ctx.fillStyle='rgba(255,255,255,.5)';
-    ctx.font=`${clamp(13,W*.03,22)}px Nunito,sans-serif`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('📷 按「啟動鏡頭」開始', W/2, H/2);
-    return;
-  }
+  if(!camReady){ drawWelcomeAnimation(ctx,W,H); return; }
 
   const lay = camLayout(arCnv);
   if(!lay) return;
@@ -492,6 +500,213 @@ function drawDetect(){
     }
     ctx.restore();
   }
+}
+
+// ── Welcome animation (shown when camera is off) ──
+function drawWelcomeAnimation(ctx,W,H){
+  const t=Date.now()/1000;
+  const pulse=0.93+Math.sin(t*1.8)*0.07;
+  const cx=W/2, cy=H*0.44;
+  const rw=W*0.22*pulse, rh=H*0.36*pulse;
+
+  // Pulsing face oval
+  ctx.save();
+  ctx.shadowColor='#00ff88'; ctx.shadowBlur=18+Math.sin(t*2)*8;
+  ctx.strokeStyle=`rgba(0,255,136,${0.45+Math.sin(t*2)*0.2})`;
+  ctx.lineWidth=1.5; ctx.setLineDash([10,6]);
+  ctx.beginPath(); ctx.ellipse(cx,cy,rw,rh,0,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // Scan line
+  const scanY=cy-rh+((t*70)%(rh*2));
+  if(scanY>cy-rh&&scanY<cy+rh){
+    ctx.save();
+    ctx.strokeStyle='rgba(0,255,136,.18)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx-rw*.9,scanY); ctx.lineTo(cx+rw*.9,scanY); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Eyes
+  const eyeY=cy-rh*0.22, ep=0.85+Math.sin(t*3.5)*0.15;
+  [[cx-rw*.43,'#00d4ff'],[cx+rw*.43,'#ff3cac']].forEach(([ex,col])=>{
+    ctx.save();
+    ctx.shadowColor=col; ctx.shadowBlur=10;
+    ctx.fillStyle=col; ctx.globalAlpha=0.55+Math.sin(t*2.5)*0.25;
+    ctx.beginPath(); ctx.ellipse(ex,eyeY,rw*.13*ep,rh*.08*ep,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+
+  // Nose dots
+  ctx.fillStyle='rgba(255,230,0,.6)';
+  [-rw*.07,rw*.07].forEach(dx=>{
+    ctx.beginPath(); ctx.arc(cx+dx,cy+rh*.05,2.5,0,Math.PI*2); ctx.fill();
+  });
+
+  // Mouth
+  ctx.save();
+  ctx.shadowColor='#ff3cac'; ctx.shadowBlur=8;
+  ctx.strokeStyle=`rgba(255,60,172,${0.6+Math.sin(t*1.5)*0.2})`;
+  ctx.lineWidth=2; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(cx,cy+rh*.25,rw*.32,.12*Math.PI,.88*Math.PI); ctx.stroke();
+  ctx.restore();
+
+  // Corner brackets
+  const bx=cx-rw*1.2,by=cy-rh*1.15,bw=rw*2.4,bh=rh*2.3,bl=Math.min(bw,bh)*.1;
+  ctx.strokeStyle='rgba(0,255,136,.45)'; ctx.lineWidth=2; ctx.setLineDash([]);
+  [[bx,by,1,1],[bx+bw,by,-1,1],[bx,by+bh,1,-1],[bx+bw,by+bh,-1,-1]].forEach(([x,y,sx,sy])=>{
+    ctx.beginPath(); ctx.moveTo(x+sx*bl,y); ctx.lineTo(x,y); ctx.lineTo(x,y+sy*bl); ctx.stroke();
+  });
+
+  // CTA text (pulsing)
+  const a=0.7+Math.sin(t*1.3)*0.25;
+  ctx.fillStyle=`rgba(255,255,255,${a})`;
+  ctx.font=`900 ${clamp(13,W*.032,20)}px Nunito,sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('點擊畫面或按下方按鈕開始變身！',W/2,H*.83);
+  ctx.font=`${clamp(10,W*.022,13)}px Nunito,sans-serif`;
+  ctx.fillStyle=`rgba(0,255,136,${0.4+Math.sin(t)*.2})`;
+  ctx.fillText('將臉對準輪廓框框 👆',W/2,H*.89);
+}
+
+// ── Preset monster factory ────────────────────
+function makePresetCanvas(id){
+  const W=400,H=460,c=document.createElement('canvas');
+  c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
+  const cx=W/2,cy=H*.5;
+  ({devil:drawPresetDevil,robot:drawPresetRobot,alien:drawPresetAlien,skull:drawPresetSkull})[id]
+    ?.(ctx,cx,cy,W,H);
+  return c;
+}
+
+function drawPresetDevil(ctx,cx,cy,W,H){
+  // Horns
+  [[cx-W*.18,cx-W*.26,cx-W*.30,cx-W*.22,cx-W*.14,cx-W*.16],
+   [cx+W*.18,cx+W*.26,cx+W*.30,cx+W*.22,cx+W*.14,cx+W*.16]].forEach(([x0,bx1,bx2,tx,rx1,rx2])=>{
+    ctx.fillStyle='#bb1111';
+    ctx.beginPath();
+    ctx.moveTo(x0,cy-H*.28);
+    ctx.bezierCurveTo(bx1,cy-H*.38,bx2,cy-H*.52,tx,cy-H*.56);
+    ctx.bezierCurveTo(rx1,cy-H*.52,rx2,cy-H*.40,x0<cx?cx-W*.16:cx+W*.16,cy-H*.28);
+    ctx.closePath(); ctx.fill();
+  });
+  // Eyebrows
+  ctx.strokeStyle='#440000'; ctx.lineWidth=W*.03; ctx.lineCap='round';
+  [[-1,1]].forEach(()=>{
+    [-1,1].forEach(s=>{
+      ctx.beginPath();
+      ctx.moveTo(cx+s*W*.30,cy-H*.165); ctx.lineTo(cx+s*W*.12,cy-H*.11); ctx.stroke();
+    });
+  });
+  // Eyes
+  [-1,1].forEach(s=>{
+    const ex=cx+s*W*.2,ey=cy-H*.04;
+    const g=ctx.createRadialGradient(ex,ey,0,ex,ey,W*.12);
+    g.addColorStop(0,'rgba(255,230,0,.9)'); g.addColorStop(.5,'rgba(255,100,0,.5)'); g.addColorStop(1,'rgba(255,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(ex,ey,W*.12,H*.075,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.85)'; ctx.beginPath(); ctx.ellipse(ex,ey,W*.022,H*.065,0,0,Math.PI*2); ctx.fill();
+  });
+  // Nose
+  ctx.fillStyle='rgba(100,0,0,.45)';
+  ctx.beginPath(); ctx.moveTo(cx,cy+H*.09); ctx.lineTo(cx-W*.055,cy+H*.17); ctx.lineTo(cx+W*.055,cy+H*.17); ctx.fill();
+  // Mouth + fangs
+  ctx.fillStyle='rgba(15,0,0,.8)';
+  ctx.beginPath(); ctx.moveTo(cx-W*.22,cy+H*.22); ctx.quadraticCurveTo(cx,cy+H*.35,cx+W*.22,cy+H*.22); ctx.quadraticCurveTo(cx,cy+H*.28,cx-W*.22,cy+H*.22); ctx.fill();
+  ctx.fillStyle='#f0f0f0';
+  [[-W*.12,-W*.15,-W*.09],[W*.12,W*.15,W*.09]].forEach(([a,b,c2])=>{
+    ctx.beginPath(); ctx.moveTo(cx+a,cy+H*.22); ctx.lineTo(cx+b,cy+H*.31); ctx.lineTo(cx+c2,cy+H*.22); ctx.fill();
+  });
+}
+
+function drawPresetRobot(ctx,cx,cy,W,H){
+  // Antenna
+  ctx.strokeStyle='#00d4ff'; ctx.lineWidth=W*.018; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx,cy-H*.38); ctx.lineTo(cx,cy-H*.54); ctx.stroke();
+  const ag=ctx.createRadialGradient(cx,cy-H*.57,0,cx,cy-H*.57,W*.06);
+  ag.addColorStop(0,'#fff'); ag.addColorStop(.4,'#00d4ff'); ag.addColorStop(1,'rgba(0,212,255,0)');
+  ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(cx,cy-H*.57,W*.06,0,Math.PI*2); ctx.fill();
+  // Eyes (hex outline)
+  [[cx-W*.2,'#00d4ff'],[cx+W*.2,'#00ff88']].forEach(([ex,col])=>{
+    const ey=cy-H*.04, r=W*.11;
+    ctx.beginPath();
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2-Math.PI/6; ctx.lineTo(ex+r*Math.cos(a),ey+r*.65*Math.sin(a));}
+    ctx.closePath(); ctx.strokeStyle=col; ctx.lineWidth=W*.014; ctx.stroke();
+    ctx.fillStyle=col.replace('#','').match(/.{2}/g).reduce((_,_2,i,a)=>
+      i===0?`rgba(${parseInt(a[0],16)},${parseInt(a[1],16)},${parseInt(a[2],16)},0.15)`:_,'');
+    ctx.fill();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(ex,ey,W*.035,0,Math.PI*2); ctx.fill();
+  });
+  // Forehead grid
+  ctx.strokeStyle='rgba(0,212,255,.22)'; ctx.lineWidth=1;
+  for(let x=cx-W*.3;x<=cx+W*.31;x+=W*.12){ctx.beginPath();ctx.moveTo(x,cy-H*.37);ctx.lineTo(x,cy-H*.13);ctx.stroke();}
+  for(let y=cy-H*.37;y<=cy-H*.12;y+=H*.08){ctx.beginPath();ctx.moveTo(cx-W*.3,y);ctx.lineTo(cx+W*.3,y);ctx.stroke();}
+  // Mouth panel
+  const [mx,my,mw,mh]=[cx-W*.24,cy+H*.19,W*.48,H*.10];
+  ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(mx,my,mw,mh);
+  ctx.strokeStyle='#00d4ff'; ctx.lineWidth=W*.012; ctx.strokeRect(mx,my,mw,mh);
+  ctx.strokeStyle='rgba(0,212,255,.45)'; ctx.lineWidth=1;
+  for(let i=1;i<7;i++){const sx=mx+i*(mw/7);ctx.beginPath();ctx.moveTo(sx,my+2);ctx.lineTo(sx,my+mh-2);ctx.stroke();}
+  // Nose triangle
+  ctx.strokeStyle='rgba(0,255,136,.5)'; ctx.lineWidth=W*.013; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.moveTo(cx,cy+H*.06); ctx.lineTo(cx-W*.055,cy+H*.16); ctx.lineTo(cx+W*.055,cy+H*.16); ctx.closePath(); ctx.stroke();
+}
+
+function drawPresetAlien(ctx,cx,cy,W,H){
+  // Head glow
+  const hg=ctx.createRadialGradient(cx,cy-H*.15,0,cx,cy-H*.15,W*.4);
+  hg.addColorStop(0,'rgba(0,200,80,.12)'); hg.addColorStop(1,'rgba(0,200,80,0)');
+  ctx.fillStyle=hg; ctx.beginPath(); ctx.ellipse(cx,cy-H*.15,W*.4,H*.38,0,0,Math.PI*2); ctx.fill();
+  // Big almond eyes
+  [-1,1].forEach((s,i)=>{
+    const ex=cx+s*W*.2,ey=cy-H*.06;
+    ctx.save(); ctx.translate(ex,ey); ctx.rotate(s*0.25);
+    ctx.fillStyle='rgba(0,0,0,.88)'; ctx.beginPath(); ctx.ellipse(0,0,W*.18,H*.12,0,0,Math.PI*2); ctx.fill();
+    const g=ctx.createRadialGradient(0,H*.02,0,0,0,W*.1);
+    g.addColorStop(0,'rgba(120,0,220,.7)'); g.addColorStop(1,'rgba(60,0,100,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,0,W*.1,H*.07,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+  // Nose slits
+  ctx.fillStyle='rgba(0,180,60,.5)';
+  [-W*.04,W*.04].forEach(dx=>{ctx.beginPath();ctx.ellipse(cx+dx,cy+H*.11,W*.025,H*.022,0,0,Math.PI*2);ctx.fill();});
+  // Thin mouth
+  ctx.strokeStyle='rgba(0,200,80,.6)'; ctx.lineWidth=W*.015; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx-W*.12,cy+H*.21); ctx.lineTo(cx+W*.12,cy+H*.21); ctx.stroke();
+  // Vein lines
+  ctx.strokeStyle='rgba(0,200,80,.2)'; ctx.lineWidth=W*.01;
+  [[-1,1],[1,-1]].forEach(([s])=>{
+    ctx.beginPath();
+    ctx.moveTo(cx+s*W*.1,cy-H*.42);
+    ctx.bezierCurveTo(cx+s*W*.2,cy-H*.32,cx+s*W*.25,cy-H*.2,cx+s*W*.18,cy-H*.12);
+    ctx.stroke();
+  });
+}
+
+function drawPresetSkull(ctx,cx,cy,W,H){
+  // Eye sockets
+  [-1,1].forEach(s=>{
+    const ex=cx+s*W*.2,ey=cy-H*.04;
+    ctx.fillStyle='rgba(0,0,0,.85)'; ctx.beginPath(); ctx.ellipse(ex,ey,W*.14,H*.10,0,0,Math.PI*2); ctx.fill();
+    const g=ctx.createRadialGradient(ex,ey+H*.02,0,ex,ey,W*.12);
+    g.addColorStop(0,'rgba(140,0,0,.4)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(ex,ey,W*.14,H*.10,0,0,Math.PI*2); ctx.fill();
+  });
+  // Nose cavity
+  ctx.fillStyle='rgba(0,0,0,.7)';
+  ctx.beginPath(); ctx.moveTo(cx,cy+H*.05); ctx.lineTo(cx-W*.07,cy+H*.17); ctx.lineTo(cx+W*.07,cy+H*.17); ctx.fill();
+  // Cheekbone highlights
+  ctx.strokeStyle='rgba(180,180,180,.2)'; ctx.lineWidth=W*.02; ctx.lineCap='round';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.moveTo(cx+s*W*.18,cy+H*.02);ctx.lineTo(cx+s*W*.32,cy+H*.12);ctx.stroke();});
+  // Teeth
+  const tW=W*.48/7,tStartX=cx-W*.24,tY=cy+H*.21;
+  for(let i=0;i<7;i++){
+    ctx.fillStyle=i%2===0?'rgba(228,228,218,.9)':'rgba(200,200,190,.9)';
+    ctx.fillRect(tStartX+i*tW+1,tY,tW-2,H*.10);
+    ctx.strokeStyle='rgba(80,80,80,.45)'; ctx.lineWidth=1; ctx.strokeRect(tStartX+i*tW+1,tY,tW-2,H*.10);
+  }
+  // Crack
+  ctx.strokeStyle='rgba(80,80,80,.4)'; ctx.lineWidth=W*.01; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.moveTo(cx-W*.04,cy-H*.42); ctx.lineTo(cx+W*.02,cy-H*.3); ctx.lineTo(cx-W*.02,cy-H*.22); ctx.lineTo(cx+W*.05,cy-H*.14); ctx.stroke();
 }
 
 // ── Start / Stop Camera ───────────────────────
@@ -661,6 +876,25 @@ document.getElementById('btn-capture').addEventListener('click',()=>{
 
 // ── Flip ──────────────────────────────────────
 document.getElementById('btn-flip').addEventListener('click',()=>{flipped=!flipped;});
+
+// ── Tap canvas to start camera (works on all devices) ──
+arCnv.addEventListener('click',()=>{ if(!camReady&&!btnStart.disabled) btnStart.click(); });
+
+// ── Preset monster selection ──────────────────
+document.querySelectorAll('.preset-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const id=btn.dataset.preset;
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+    if(id==='none'){
+      monsterImg=null;
+      setStatus('green','🧹 怪物已清除');
+      return;
+    }
+    btn.classList.add('active');
+    monsterImg=makePresetCanvas(id);
+    setStatus('green',`🎭 ${btn.title} 已選取！`);
+  });
+});
 
 // ── Template canvas ───────────────────────────
 (function drawTemplate(){
