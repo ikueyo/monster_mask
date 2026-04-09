@@ -93,6 +93,22 @@ body::before{
 .preset-btn:hover{transform:scale(1.15);border-color:rgba(0,255,136,.5);}
 .preset-btn.active{border-color:var(--green);box-shadow:0 0 10px rgba(0,255,136,.4);background:rgba(0,255,136,.1);}
 .preset-label{font-size:.62rem;color:rgba(255,255,255,.32);letter-spacing:.02em;}
+/* alpha slider */
+.alpha-wrap{display:flex;align-items:center;gap:5px;}
+.alpha-label{font-size:.72rem;}
+.alpha-val{font-size:.65rem;color:var(--green);font-weight:900;min-width:30px;text-align:right;}
+/* gallery */
+#gallery-wrap{flex-shrink:0;width:100%;padding:4px 10px 2px;background:rgba(7,7,26,.97);}
+#gallery-strip{display:flex;gap:6px;align-items:center;min-height:46px;overflow-x:auto;scrollbar-width:none;}
+#gallery-strip::-webkit-scrollbar{display:none;}
+.gallery-thumb{width:42px;height:42px;object-fit:cover;border-radius:7px;border:1.5px solid rgba(255,230,0,.4);cursor:pointer;flex-shrink:0;transition:transform .15s,border-color .15s;}
+.gallery-thumb:hover{transform:scale(1.12);border-color:var(--yellow);}
+.gallery-empty{font-size:.6rem;color:rgba(255,255,255,.3);}
+/* zone pills */
+.zone-legend{display:flex;flex-wrap:wrap;gap:5px;padding:6px 14px;justify-content:center;}
+.zone-pill{font-size:.62rem;padding:2px 9px;border-radius:20px;font-weight:700;border-width:1px;border-style:solid;}
+/* button hover lift */
+.btn:hover{filter:brightness(1.1) drop-shadow(0 0 5px rgba(255,255,255,.15));transform:translateY(-2px);}
 
 </style>
 </head>
@@ -111,9 +127,9 @@ body::before{
     <div id="dbg-ball"></div>
   </div>
   <div id="tabs">
-    <button class="tab active" data-tab="ar">🎭 AR 變身</button>
-    <button class="tab" data-tab="detect">🔍 即時偵測</button>
-    <button class="tab" data-tab="template">📄 面具模板</button>
+    <button class="tab active" data-tab="ar">🎭 變身</button>
+    <button class="tab" data-tab="template">🖍️ 設計</button>
+    <button class="tab" data-tab="detect">🔬 AI 實驗室</button>
   </div>
   <div id="content">
 
@@ -126,6 +142,9 @@ body::before{
           <div style="font-size:.62rem;color:var(--yellow);">📸 已拍照！</div>
           <button id="btn-dl">下載</button>
         </div>
+      </div>
+      <div id="gallery-wrap">
+        <div id="gallery-strip"><span class="gallery-empty">拍照後作品會顯示在這裡 📸</span></div>
       </div>
       <div id="preset-row">
         <span class="preset-label">快速怪物：</span>
@@ -140,8 +159,12 @@ body::before{
         <button class="btn btn-pink"  id="btn-upload">🎨 上傳怪物</button>
         <button class="btn btn-yellow" id="btn-capture">📸 拍照</button>
         <button class="btn btn-purple" id="btn-flip">🔄 翻轉</button>
-        <span style="font-size:.72rem;color:rgba(255,255,255,.6);">👻</span>
-        <input type="range" id="alpha-slider" min="30" max="255" value="210">
+        <div class="alpha-wrap">
+          <span class="alpha-label">👻</span>
+          <input type="range" id="alpha-slider" min="30" max="255" value="210">
+          <span class="alpha-label">👾</span>
+          <span class="alpha-val" id="alpha-val">82%</span>
+        </div>
       </div>
     </div>
 
@@ -177,6 +200,14 @@ body::before{
         <div class="instr-item"><div class="instr-num">3</div><span>用手機拍攝整張模板，確保四個角都在畫面內</span></div>
         <div class="instr-item"><div class="instr-num">4</div><span>回到「AR 變身」，按「上傳怪物」選剛拍的照片</span></div>
         <div class="instr-item"><div class="instr-num">5</div><span>程式自動偵測定位點，把五官對應到臉部！</span></div>
+      </div>
+      <div class="zone-legend">
+        <span class="zone-pill" style="background:rgba(153,102,255,.15);color:#cc88ff;border-color:#cc88ff;">眉毛</span>
+        <span class="zone-pill" style="background:rgba(0,170,255,.15);color:#00aaff;border-color:#00aaff;">左眼</span>
+        <span class="zone-pill" style="background:rgba(255,60,172,.15);color:#ff3cac;border-color:#ff3cac;">右眼</span>
+        <span class="zone-pill" style="background:rgba(255,170,0,.15);color:#ffaa00;border-color:#ffaa00;">鼻子</span>
+        <span class="zone-pill" style="background:rgba(255,85,0,.15);color:#ff5500;border-color:#ff5500;">嘴巴</span>
+        <span class="zone-pill" style="background:rgba(255,50,50,.1);color:rgba(255,120,120,.9);border-color:rgba(255,100,100,.4);">⚠️ 避免純白／綠色</span>
       </div>
       <div class="tpl-btn-row">
         <button class="btn btn-green" id="btn-dl-template">⬇️ 下載模板 (PNG)</button>
@@ -215,6 +246,11 @@ let   monsterImg = null;
 let   monsterAlpha = 210;
 let   activeTab  = 'ar';
 let   errCount   = 0;
+// celebration & countdown
+let particles = [], faceFirstDetected = false;
+let countdown = 0, countdownTimer = null;
+// AI stats
+let lastDetectTime = Date.now(), frameMs = 16;
 
 // DOM
 const stDot  = document.getElementById('st-dot');
@@ -261,8 +297,11 @@ function stopCamera(){
   }
   camReady = false;
   faceReady = false;
+  faceFirstDetected = false;
   landmarks = [];
   faceBox = null;
+  if(countdownTimer){ clearInterval(countdownTimer); countdownTimer=null; countdown=0; }
+  particles = [];
   snapW.style.display = 'none';
   updateCamBtn('idle');
   setStatus('', '等待啟動…');
@@ -316,7 +355,11 @@ document.querySelectorAll('.tab').forEach(t => {
 });
 
 // ── Alpha slider ──────────────────────────────
-alphaS.addEventListener('input', () => { monsterAlpha = parseInt(alphaS.value); });
+alphaS.addEventListener('input', () => {
+  monsterAlpha = parseInt(alphaS.value);
+  const el = document.getElementById('alpha-val');
+  if(el) el.textContent = Math.round(monsterAlpha/255*100)+'%';
+});
 
 // ── Draw loop (rAF) ──────────────────────────
 function drawLoop(){
@@ -384,6 +427,22 @@ function drawAR(){
   ctx.textAlign='left'; ctx.textBaseline='top';
   const n = landmarks.length > 0 ? 1 : 0;
   ctx.fillText(`👤 偵測 ${n} 張臉 | 透明度 ${Math.round(monsterAlpha/255*100)}%`, 8, H-20);
+
+  // Particles
+  updateParticles(ctx);
+
+  // Countdown overlay
+  if(countdown > 0){
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,.38)'; ctx.fillRect(0,0,W,H);
+    ctx.font=`900 ${clamp(55,W*.28,120)}px Nunito,sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const cdColor = countdown===1?'#ff3cac':countdown===2?'#ffe600':'#00ff88';
+    ctx.shadowColor=cdColor; ctx.shadowBlur=50;
+    ctx.fillStyle=cdColor;
+    ctx.fillText(countdown, W/2, H*.45);
+    ctx.restore();
+  }
 }
 
 function drawMonsterOverlay(ctx, lay, W){
@@ -500,6 +559,9 @@ function drawDetect(){
     }
     ctx.restore();
   }
+
+  // AI Stats HUD overlay
+  drawAIHud(ctx, W, H);
 }
 
 // ── Welcome animation (shown when camera is off) ──
@@ -709,6 +771,137 @@ function drawPresetSkull(ctx,cx,cy,W,H){
   ctx.beginPath(); ctx.moveTo(cx-W*.04,cy-H*.42); ctx.lineTo(cx+W*.02,cy-H*.3); ctx.lineTo(cx-W*.02,cy-H*.22); ctx.lineTo(cx+W*.05,cy-H*.14); ctx.stroke();
 }
 
+// ── Celebration: particles + sound ───────────
+function triggerCelebration(){
+  playCelebrationSound();
+  // Spawn particles at center of AR canvas
+  const cx=arCnv.width/2, cy=arCnv.height*.4;
+  for(let i=0;i<28;i++){
+    const angle=Math.random()*Math.PI*2;
+    const speed=3+Math.random()*5;
+    particles.push({
+      x:cx, y:cy,
+      vx:Math.cos(angle)*speed,
+      vy:Math.sin(angle)*speed-2,
+      life:1.0,
+      decay:0.018+Math.random()*.012,
+      size:3+Math.random()*4,
+      color:['#00ff88','#00d4ff','#ff3cac','#ffe600','#ff7f00'][i%5]
+    });
+  }
+}
+
+function playCelebrationSound(){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    [523,659,784,1047].forEach((freq,i)=>{
+      const osc=ac.createOscillator(), gain=ac.createGain();
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.frequency.value=freq; osc.type='sine';
+      const t=ac.currentTime+i*.1;
+      gain.gain.setValueAtTime(.12,t);
+      gain.gain.exponentialRampToValueAtTime(.001,t+.28);
+      osc.start(t); osc.stop(t+.3);
+    });
+  }catch(e){}
+}
+
+function updateParticles(ctx){
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=.15; p.life-=p.decay;
+    ctx.save();
+    ctx.globalAlpha=p.life;
+    ctx.fillStyle=p.color;
+    ctx.shadowColor=p.color; ctx.shadowBlur=6;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ── doCapture (after countdown) ───────────────
+function doCapture(){
+  flash.classList.remove('pop'); void flash.offsetWidth; flash.classList.add('pop');
+  const url=arCnv.toDataURL('image/png');
+  snapI.src=url; snapW.style.display='flex';
+  btnDl.onclick=()=>{const a=document.createElement('a');a.href=url;a.download=`monster_${Date.now()}.png`;a.click();};
+  saveToGallery(url);
+  setStatus('green','🌟 完美！照片已儲存！');
+}
+
+// ── Gallery (localStorage) ────────────────────
+const GALLERY_KEY='monster_gallery';
+function saveToGallery(dataUrl){
+  try{
+    let g=JSON.parse(localStorage.getItem(GALLERY_KEY)||'[]');
+    g.unshift(dataUrl);
+    if(g.length>5) g=g.slice(0,5);
+    localStorage.setItem(GALLERY_KEY,JSON.stringify(g));
+    renderGallery();
+  }catch(e){}
+}
+
+function renderGallery(){
+  const strip=document.getElementById('gallery-strip');
+  if(!strip) return;
+  try{
+    const g=JSON.parse(localStorage.getItem(GALLERY_KEY)||'[]');
+    if(g.length===0){
+      strip.innerHTML='<span class="gallery-empty">拍照後作品會顯示在這裡 📸</span>';
+      return;
+    }
+    strip.innerHTML='';
+    g.forEach((url,i)=>{
+      const img=document.createElement('img');
+      img.src=url; img.className='gallery-thumb'; img.title=`作品 ${i+1}`;
+      img.onclick=()=>{const a=document.createElement('a');a.href=url;a.download=`monster_work_${i+1}.png`;a.click();};
+      strip.appendChild(img);
+    });
+  }catch(e){}
+}
+
+// ── AI Stats HUD (for detect tab) ─────────────
+function getFaceAngle(){
+  if(landmarks.length<455) return 0;
+  const l=landmarks[234],r=landmarks[454];
+  if(!l||!r) return 0;
+  return Math.round(Math.atan2(r.y-l.y,r.x-l.x)*180/Math.PI);
+}
+
+function drawAIHud(ctx,W,H){
+  const angle=getFaceAngle();
+  const hasFace=landmarks.length>0;
+  const hw=Math.min(W*.42,170), hh=68, hx=W-8, hy=8;
+  // Panel background
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.65)';
+  ctx.strokeStyle='rgba(0,255,136,.3)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  const r=7;
+  ctx.moveTo(hx-hw+r,hy); ctx.lineTo(hx-r,hy); ctx.arcTo(hx,hy,hx,hy+r,r);
+  ctx.lineTo(hx,hy+hh-r); ctx.arcTo(hx,hy+hh,hx-r,hy+hh,r);
+  ctx.lineTo(hx-hw+r,hy+hh); ctx.arcTo(hx-hw,hy+hh,hx-hw,hy+hh-r,r);
+  ctx.lineTo(hx-hw,hy+r); ctx.arcTo(hx-hw,hy,hx-hw+r,hy,r);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Stats rows
+  const rows=[
+    ['🧠 偵測信心',hasFace?'高':'--',hasFace?'#00ff88':'#555'],
+    ['📐 臉部傾斜',hasFace?`${angle}°`:'--','#00d4ff'],
+    ['⚡ 處理速度',`${frameMs}ms`,frameMs<50?'#00ff88':frameMs<100?'#ffe600':'#ff3344'],
+  ];
+  const fs=clamp(8,W*.018,11);
+  ctx.font=`bold ${fs}px Nunito,sans-serif`;
+  rows.forEach(([label,val,col],i)=>{
+    const y=hy+17+i*18;
+    ctx.fillStyle='rgba(255,255,255,.5)'; ctx.textAlign='left';
+    ctx.fillText(label,hx-hw+9,y);
+    ctx.fillStyle=col; ctx.textAlign='right';
+    ctx.fillText(val,hx-8,y);
+  });
+  ctx.restore();
+}
+
 // ── Start / Stop Camera ───────────────────────
 btnStart.addEventListener('click', async () => {
   // 已啟動 → 停止相機
@@ -759,18 +952,18 @@ function initFaceMesh(){
   });
 
   faceMesh.onResults((results) => {
-    // 只要模型開始回傳結果（不論是否有臉），就表示初始化成功
+    const now=Date.now(); frameMs=Math.round(now-lastDetectTime); lastDetectTime=now;
     if(!faceReady){
       faceReady = true;
       setStatus('green','✅ AI 已就緒，請對準鏡頭 😄');
     }
-
     if(results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0){
       landmarks = results.multiFaceLandmarks[0];
+      if(!faceFirstDetected){ faceFirstDetected=true; triggerCelebration(); }
       setStatus('green','✅ 偵測到臉！');
     } else {
       landmarks = [];
-      setStatus('green','👀 找不到臉，調整角度？');
+      if(faceFirstDetected) setStatus('green','👀 找不到臉，調整角度？');
     }
   });
 
@@ -812,7 +1005,17 @@ fileIn.addEventListener('change',(e)=>{
     // try marker crop
     const cropped = detectAndCrop(oc, oc2);
     monsterImg = cropped || oc;
-    setStatus('green','🎨 怪物已上傳！');
+    // 計算被去除的透明比例，提醒使用者
+    const chkId=oc2.getImageData(0,0,oc.width,oc.height);
+    let transCnt=0;
+    for(let j=3;j<chkId.data.length;j+=4) if(chkId.data[j]<10) transCnt++;
+    const transRatio=transCnt/(oc.width*oc.height);
+    if(transRatio>0.65){
+      setStatus('yellow',`⚠️ 有 ${Math.round(transRatio*100)}% 被透明化，建議減少綠色或白色`);
+    } else {
+      setStatus('green','🎨 怪物已上傳！');
+    }
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
   };
   img.src=url;
   fileIn.value='';
@@ -864,14 +1067,18 @@ function detectAndCrop(oc, oc2){
   }catch(e){return null;}
 }
 
-// ── Capture ───────────────────────────────────
+// ── Capture (3-2-1 countdown) ─────────────────
 document.getElementById('btn-capture').addEventListener('click',()=>{
   if(!camReady){setStatus('yellow','先啟動鏡頭！');return;}
-  flash.classList.remove('pop');void flash.offsetWidth;flash.classList.add('pop');
-  const url=arCnv.toDataURL('image/png');
-  snapI.src=url; snapW.style.display='flex';
-  btnDl.onclick=()=>{const a=document.createElement('a');a.href=url;a.download=`monster_${Date.now()}.png`;a.click();};
-  setStatus('green','📸 拍照成功！');
+  if(countdown>0) return;
+  countdown=3; setStatus('green','📸 準備拍照…');
+  countdownTimer=setInterval(()=>{
+    countdown--;
+    if(countdown<=0){
+      clearInterval(countdownTimer); countdownTimer=null; countdown=0;
+      doCapture();
+    }
+  },1000);
 });
 
 // ── Flip ──────────────────────────────────────
@@ -951,6 +1158,9 @@ document.getElementById('btn-print').addEventListener('click',()=>window.print()
 
 // ── Utility ───────────────────────────────────
 function clamp(a,v,b){return Math.min(b,Math.max(a,v));}
+
+// ── Init ──────────────────────────────────────
+renderGallery();
 
 </script>
 </body>
