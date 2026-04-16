@@ -475,7 +475,7 @@ function drawMonsterOverlay(ctx, lay, W){
   const fw = (maxX-minX)*1.45;
   const fh = (maxY-minY)*1.65;
   const fx = minX - (fw-(maxX-minX))/2;
-  const fy = minY - fh*0.20;
+  const fy = minY - fh*0.23;
 
   // 只有上傳怪物圖片後才顯示
   if(monsterImg){
@@ -770,22 +770,22 @@ function drawPresetAlien(ctx,cx,cy,W,H){
 }
 
 function drawPresetSkull(ctx,cx,cy,W,H){
-  // Eye sockets
+  // Eye sockets（上移並縮小，避免蓋到鼻子）
   [-1,1].forEach(s=>{
-    const ex=cx+s*W*.2,ey=cy-H*.04;
-    ctx.fillStyle='rgba(0,0,0,.85)'; ctx.beginPath(); ctx.ellipse(ex,ey,W*.14,H*.10,0,0,Math.PI*2); ctx.fill();
-    const g=ctx.createRadialGradient(ex,ey+H*.02,0,ex,ey,W*.12);
+    const ex=cx+s*W*.2, ey=cy-H*.09;
+    ctx.fillStyle='rgba(0,0,0,.85)'; ctx.beginPath(); ctx.ellipse(ex,ey,W*.12,H*.085,0,0,Math.PI*2); ctx.fill();
+    const g=ctx.createRadialGradient(ex,ey+H*.02,0,ex,ey,W*.10);
     g.addColorStop(0,'rgba(140,0,0,.4)'); g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(ex,ey,W*.14,H*.10,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(ex,ey,W*.12,H*.085,0,0,Math.PI*2); ctx.fill();
   });
-  // Nose cavity
+  // Nose cavity（上移）
   ctx.fillStyle='rgba(0,0,0,.7)';
-  ctx.beginPath(); ctx.moveTo(cx,cy+H*.05); ctx.lineTo(cx-W*.07,cy+H*.17); ctx.lineTo(cx+W*.07,cy+H*.17); ctx.fill();
-  // Cheekbone highlights
+  ctx.beginPath(); ctx.moveTo(cx,cy+H*.01); ctx.lineTo(cx-W*.07,cy+H*.12); ctx.lineTo(cx+W*.07,cy+H*.12); ctx.fill();
+  // Cheekbone highlights（上移）
   ctx.strokeStyle='rgba(180,180,180,.2)'; ctx.lineWidth=W*.02; ctx.lineCap='round';
-  [-1,1].forEach(s=>{ctx.beginPath();ctx.moveTo(cx+s*W*.18,cy+H*.02);ctx.lineTo(cx+s*W*.32,cy+H*.12);ctx.stroke();});
-  // Teeth
-  const tW=W*.48/7,tStartX=cx-W*.24,tY=cy+H*.21;
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.moveTo(cx+s*W*.18,cy-H*.03);ctx.lineTo(cx+s*W*.32,cy+H*.07);ctx.stroke();});
+  // Teeth（上移，對齊嘴部）
+  const tW=W*.48/7,tStartX=cx-W*.24,tY=cy+H*.13;
   for(let i=0;i<7;i++){
     ctx.fillStyle=i%2===0?'rgba(228,228,218,.9)':'rgba(200,200,190,.9)';
     ctx.fillRect(tStartX+i*tW+1,tY,tW-2,H*.10);
