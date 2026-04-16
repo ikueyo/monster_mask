@@ -1,7 +1,7 @@
 /* 怪物變身鏡 — Service Worker
    策略：本地檔案 cache-first，CDN 資源 network-first + fallback
 */
-const CACHE = 'monster-mask-v2';
+const CACHE = 'monster-mask-v3';
 const LOCAL_ASSETS = [
   './',
   './index.html',
@@ -15,7 +15,7 @@ self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
       .then(c => c.addAll(LOCAL_ASSETS))
-      .then(() => self.skipWaiting())
+    // 不在此呼叫 skipWaiting()，改由頁面主動觸發（讓用戶確認後再更新）
   );
 });
 
@@ -26,6 +26,11 @@ self.addEventListener('activate', e => {
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
+});
+
+// ── 接收頁面訊息：用戶確認後跳過等待 ─────────────
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // ── 攔截請求 ────────────────────────────────────
