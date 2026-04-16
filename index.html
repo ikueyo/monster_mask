@@ -3,7 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>怪物變身鏡 v3 👾</title>
+<title>怪物變身鏡 👾</title>
+
+<!-- PWA manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS PWA 必要設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="怪物鏡">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- 主題色（Android 網址列、iOS 狀態列）-->
+<meta name="theme-color" content="#07071a">
+
+<!-- 基本 SEO / 分享預覽 -->
+<meta name="description" content="即時 AR 怪物面具變身相機，用 AI 把你的臉變成各種怪物！">
+<meta property="og:title" content="怪物變身鏡">
+<meta property="og:description" content="即時 AR 怪物面具變身相機">
+<meta property="og:image" content="icon-512.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap');
 :root{
@@ -1173,6 +1191,14 @@ function clamp(a,v,b){return Math.min(b,Math.max(a,v));}
 
 // ── Init ──────────────────────────────────────
 renderGallery();
+
+// ── Service Worker 註冊（PWA 離線支援）──────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .catch(err => console.warn('SW 註冊失敗:', err));
+  });
+}
 
 </script>
 </body>
