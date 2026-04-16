@@ -3,7 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>怪物變身鏡 v3 👾</title>
+<title>怪物變身鏡 👾</title>
+
+<!-- PWA manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS PWA 必要設定 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="怪物鏡">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- 主題色（Android 網址列、iOS 狀態列）-->
+<meta name="theme-color" content="#07071a">
+
+<!-- 基本 SEO / 分享預覽 -->
+<meta name="description" content="即時 AR 怪物面具變身相機，用 AI 把你的臉變成各種怪物！">
+<meta property="og:title" content="怪物變身鏡">
+<meta property="og:description" content="即時 AR 怪物面具變身相機">
+<meta property="og:image" content="icon-512.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap');
 :root{
@@ -16,9 +34,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
 body::before{
   content:'';position:fixed;inset:0;z-index:0;
   background-image:linear-gradient(rgba(0,255,136,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,.03) 1px,transparent 1px);
-  background-size:44px 44px;animation:gridScroll 25s linear infinite;pointer-events:none;
+  background-size:44px 44px;pointer-events:none;
 }
-@keyframes gridScroll{to{background-position:44px 44px;}}
 #app{position:relative;z-index:1;width:100%;height:100%;display:flex;flex-direction:column;}
 /* header */
 #hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;border-bottom:1px solid var(--border);background:rgba(7,7,26,.9);gap:8px;}
@@ -446,11 +463,14 @@ function drawAR(){
 }
 
 function drawMonsterOverlay(ctx, lay, W){
-  // 取臉部輪廓點算 bounding box
-  const pts = MP.silhouette.map(i => lmToCanvas(landmarks[i], lay, W));
-  const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
-  const minX=Math.min(...xs), maxX=Math.max(...xs);
-  const minY=Math.min(...ys), maxY=Math.max(...ys);
+  // 取臉部輪廓點算 bounding box（直接走訪，避免 spread 開銷）
+  const idxs = MP.silhouette;
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  for(let i=0;i<idxs.length;i++){
+    const p=lmToCanvas(landmarks[idxs[i]], lay, W);
+    if(p.x<minX) minX=p.x; if(p.x>maxX) maxX=p.x;
+    if(p.y<minY) minY=p.y; if(p.y>maxY) maxY=p.y;
+  }
 
   const fw = (maxX-minX)*1.45;
   const fh = (maxY-minY)*1.65;
@@ -498,11 +518,16 @@ function drawDetect(){
 
   // lmToCanvas 內部已根據 flipped 做鏡像，W 傳入即可
 
-  // bounding box from silhouette
-  const silPts = MP.silhouette.map(i => lmToCanvas(landmarks[i], lay, W));
-  const xs = silPts.map(p=>p.x), ys = silPts.map(p=>p.y);
-  const bx=Math.min(...xs)-6, by=Math.min(...ys)-6;
-  const bw=Math.max(...xs)-bx+12, bh=Math.max(...ys)-by+12;
+  // bounding box from silhouette（直接走訪，避免 spread 開銷）
+  const silIdxs = MP.silhouette;
+  let sMinX=Infinity, sMaxX=-Infinity, sMinY=Infinity, sMaxY=-Infinity;
+  for(let i=0;i<silIdxs.length;i++){
+    const p=lmToCanvas(landmarks[silIdxs[i]], lay, W);
+    if(p.x<sMinX) sMinX=p.x; if(p.x>sMaxX) sMaxX=p.x;
+    if(p.y<sMinY) sMinY=p.y; if(p.y>sMaxY) sMaxY=p.y;
+  }
+  const bx=sMinX-6, by=sMinY-6;
+  const bw=sMaxX-bx+12, bh=sMaxY-by+12;
 
   ctx.save();
   ctx.strokeStyle='rgba(0,255,136,.8)';
@@ -808,15 +833,15 @@ function playCelebrationSound(){
 
 function updateParticles(ctx){
   particles=particles.filter(p=>p.life>0);
+  if(particles.length===0) return;
+  ctx.save();
   particles.forEach(p=>{
     p.x+=p.vx; p.y+=p.vy; p.vy+=.15; p.life-=p.decay;
-    ctx.save();
     ctx.globalAlpha=p.life;
     ctx.fillStyle=p.color;
-    ctx.shadowColor=p.color; ctx.shadowBlur=6;
     ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
-    ctx.restore();
   });
+  ctx.restore();
 }
 
 // ── doCapture (after countdown) ───────────────
@@ -916,7 +941,7 @@ btnStart.addEventListener('click', async () => {
   setStatus('yellow','正在存取相機權限…');
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'user', width:{ideal:1280}, height:{ideal:720}}
+      video:{facingMode:'user', width:{ideal:640}, height:{ideal:480}}
     });
     video.srcObject = stream;
     await video.play();
@@ -946,7 +971,7 @@ function initFaceMesh(){
 
   faceMesh.setOptions({
     maxNumFaces: 1,
-    refineLandmarks: true,
+    refineLandmarks: false,
     minDetectionConfidence: 0.5,
     minTrackingConfidence: 0.5,
   });
@@ -967,23 +992,27 @@ function initFaceMesh(){
     }
   });
 
-  // 手動處理視訊影格，取代 MediaPipe Camera 工具
+  // 手動處理視訊影格，限制 AI 推論至約 20fps 以節省 CPU
+  const AI_INTERVAL = 50; // ms → ~20fps
   let isProcessing = false;
-  async function predict() {
-    if(camReady && faceMesh && !isProcessing && !video.paused && !video.ended){
-      isProcessing = true;
-      try {
-        await faceMesh.send({image: video});
-      } catch(e){
-        console.warn("AI 處理異常:", e);
-      }
-      isProcessing = false;
-    }
+  let lastPredictTime = 0;
+
+  async function predict(now) {
     requestAnimationFrame(predict);
+    if(!camReady || !faceMesh || isProcessing || video.paused || video.ended) return;
+    if(now - lastPredictTime < AI_INTERVAL) return;
+    lastPredictTime = now;
+    isProcessing = true;
+    try {
+      await faceMesh.send({image: video});
+    } catch(e){
+      console.warn("AI 處理異常:", e);
+    }
+    isProcessing = false;
   }
-  
+
   // 開始偵測循環
-  predict();
+  requestAnimationFrame(predict);
 }
 
 // ── Upload + Green Screen ─────────────────────
@@ -1162,6 +1191,14 @@ function clamp(a,v,b){return Math.min(b,Math.max(a,v));}
 
 // ── Init ──────────────────────────────────────
 renderGallery();
+
+// ── Service Worker 註冊（PWA 離線支援）──────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .catch(err => console.warn('SW 註冊失敗:', err));
+  });
+}
 
 </script>
 </body>

@@ -1,0 +1,27 @@
+{
+  "name": "怪物變身鏡",
+  "short_name": "怪物鏡",
+  "description": "即時 AR 怪物面具變身相機，用 AI 把你的臉變成各種怪物！",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07071a",
+  "theme_color": "#07071a",
+  "lang": "zh-TW",
+  "categories": ["entertainment", "photo"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
