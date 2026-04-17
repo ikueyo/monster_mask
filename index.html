@@ -140,7 +140,7 @@ body::before{
 <div id="app">
   <div id="hdr">
     <h1>👾 怪物變身鏡</h1>
-    <span id="version-badge">v3.1</span>
+    <span id="version-badge">v3.2</span>
   </div>
   <div id="status-bar">
     <div id="st-dot"></div>
@@ -557,9 +557,14 @@ function drawExpressionLayer(ctx, lay, W){
     ctx.beginPath(); ctx.ellipse(mC.x,mC.y,mW*.54,mH,0,0,Math.PI*2); ctx.fill();
     if(mOpen<eyeDist*.18){
       ctx.fillStyle='#f0f0f0';
-      const fH=eyeDist*.22,fw=eyeDist*.07;
-      [mC.x-mW*.2,mC.x+mW*.09].forEach(fx=>{
-        ctx.beginPath(); ctx.moveTo(fx,mC.y-mH*.25); ctx.lineTo(fx-fw,mC.y+fH); ctx.lineTo(fx+fw,mC.y+fH); ctx.fill();
+      const fH=eyeDist*.22, fw=eyeDist*.07;
+      // 獠牙從上唇（mT.y）往下延伸
+      [mC.x-mW*.18, mC.x+mW*.09].forEach(fx=>{
+        ctx.beginPath();
+        ctx.moveTo(fx, mT.y+eyeDist*.02);
+        ctx.lineTo(fx-fw, mT.y+fH);
+        ctx.lineTo(fx+fw, mT.y+fH);
+        ctx.fill();
       });
     }
   }
@@ -617,12 +622,14 @@ function drawExpressionLayer(ctx, lay, W){
       ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(e.x,e.y,eyeDist*.38,eyeDist*.29,0,0,Math.PI*2); ctx.fill();
     });
     const tCount=7, tW2=mW/tCount;
-    const tH=Math.max(eyeDist*.24,mOpen*.5+eyeDist*.14);
+    const tH=Math.max(eyeDist*.20, mOpen*.4+eyeDist*.10);
+    // Math.min 確保鏡像模式下也從左側開始
+    const tStartX=Math.min(mL.x,mR.x);
     for(let i=0;i<tCount;i++){
       ctx.fillStyle=i%2===0?'rgba(228,228,218,.92)':'rgba(200,200,190,.92)';
-      ctx.fillRect(mL.x+i*tW2+1,mC.y,tW2-2,tH);
+      ctx.fillRect(tStartX+i*tW2+1, mT.y, tW2-2, tH);
       ctx.strokeStyle='rgba(80,80,80,.45)'; ctx.lineWidth=1;
-      ctx.strokeRect(mL.x+i*tW2+1,mC.y,tW2-2,tH);
+      ctx.strokeRect(tStartX+i*tW2+1, mT.y, tW2-2, tH);
     }
   }
 
