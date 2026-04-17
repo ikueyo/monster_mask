@@ -1,7 +1,7 @@
 /* 怪物變身鏡 — Service Worker
    策略：本地檔案 cache-first，CDN 資源 network-first + fallback
 */
-const CACHE = 'monster-mask-v3';
+const CACHE = 'monster-mask-v4';
 const LOCAL_ASSETS = [
   './',
   './index.html',
