@@ -160,6 +160,9 @@ body::before{
 /* zone pills */
 .zone-legend{display:flex;flex-wrap:wrap;gap:5px;padding:6px 14px;justify-content:center;}
 .zone-pill{font-size:.62rem;padding:2px 9px;border-radius:20px;font-weight:700;border-width:1px;border-style:solid;}
+/* AR truly fullscreen — canvas + glass bottom go fixed when AR tab is active */
+.ar-active #canvas-wrap{position:fixed!important;inset:0;z-index:1;}
+.ar-active #ar-glass-bottom{position:fixed!important;bottom:0;left:0;right:0;z-index:10;}
 /* update banner */
 #update-bar{position:fixed;top:0;left:0;right:0;z-index:999;background:var(--green);color:var(--dark);text-align:center;padding:13px 16px;font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(.78rem,2.5vw,.92rem);cursor:pointer;transform:translateY(-100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);-webkit-tap-highlight-color:transparent;}
 #update-bar.show{transform:translateY(0);}
@@ -174,7 +177,7 @@ body::before{
 <div id="app">
   <div id="hdr">
     <h1>👾 怪物變身鏡</h1>
-    <span id="version-badge">v3.4</span>
+    <span id="version-badge">v3.5</span>
   </div>
   <div id="status-bar">
     <div id="st-dot"></div>
@@ -429,6 +432,7 @@ resizeCanvas(arCnv);
 resizeCanvas(detCnv);
 
 // ── Tab switching ─────────────────────────────
+const appEl = document.getElementById('app');
 document.querySelectorAll('.tab').forEach(t => {
   t.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
@@ -436,11 +440,15 @@ document.querySelectorAll('.tab').forEach(t => {
     t.classList.add('active');
     activeTab = t.dataset.tab;
     document.getElementById('panel-'+activeTab).classList.add('active');
+    // AR tab: camera goes truly fullscreen via fixed positioning
+    if(activeTab === 'ar') appEl.classList.add('ar-active');
+    else appEl.classList.remove('ar-active');
     resizeCanvas(arCnv);
     resizeCanvas(detCnv);
     updateTabIndicator();
   });
 });
+appEl.classList.add('ar-active'); // AR tab is active by default
 
 // ── Alpha slider ──────────────────────────────
 alphaS.addEventListener('input', () => {
