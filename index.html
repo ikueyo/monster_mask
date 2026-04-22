@@ -43,7 +43,7 @@ body::before{
 #hdr h1{font-family:'Orbitron',monospace;font-size:clamp(.85rem,3vw,1.3rem);font-weight:900;letter-spacing:.06em;background:linear-gradient(90deg,var(--green),var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap;}
 #version-badge{font-size:.6rem;font-weight:800;background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.35);padding:2px 8px;border-radius:20px;flex-shrink:0;}
 /* status — glass compact */
-#status-bar{display:flex;align-items:center;gap:7px;font-size:clamp(.58rem,1.6vw,.7rem);background:rgba(0,0,0,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:2px 12px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.07);position:relative;z-index:20;}
+#status-bar{display:flex;align-items:center;gap:7px;font-size:clamp(.58rem,1.6vw,.7rem);background:rgba(7,7,26,.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:2px 12px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);position:relative;z-index:20;}
 #st-dot{width:7px;height:7px;border-radius:50%;background:#555;box-shadow:0 0 5px #555;flex-shrink:0;transition:background .3s,box-shadow .3s;}
 #st-dot.green{background:var(--green);box-shadow:0 0 8px var(--green);}
 #st-dot.yellow{background:var(--yellow);box-shadow:0 0 8px var(--yellow);animation:blink .8s ease-in-out infinite;}
@@ -177,7 +177,7 @@ body::before{
 <div id="app">
   <div id="hdr">
     <h1>👾 怪物變身鏡</h1>
-    <span id="version-badge">v3.5</span>
+    <span id="version-badge">v3.6</span>
   </div>
   <div id="status-bar">
     <div id="st-dot"></div>
@@ -418,6 +418,9 @@ const MP = {
 };
 
 // ── Canvas resize ────────────────────────────
+const appEl = document.getElementById('app');
+appEl.classList.add('ar-active'); // set before first resize so arCnv gets full viewport size
+
 function resizeCanvas(cnv){
   const wrap = cnv.parentElement;
   cnv.width  = wrap.clientWidth;
@@ -432,7 +435,6 @@ resizeCanvas(arCnv);
 resizeCanvas(detCnv);
 
 // ── Tab switching ─────────────────────────────
-const appEl = document.getElementById('app');
 document.querySelectorAll('.tab').forEach(t => {
   t.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
@@ -440,7 +442,6 @@ document.querySelectorAll('.tab').forEach(t => {
     t.classList.add('active');
     activeTab = t.dataset.tab;
     document.getElementById('panel-'+activeTab).classList.add('active');
-    // AR tab: camera goes truly fullscreen via fixed positioning
     if(activeTab === 'ar') appEl.classList.add('ar-active');
     else appEl.classList.remove('ar-active');
     resizeCanvas(arCnv);
@@ -448,7 +449,6 @@ document.querySelectorAll('.tab').forEach(t => {
     updateTabIndicator();
   });
 });
-appEl.classList.add('ar-active'); // AR tab is active by default
 
 // ── Alpha slider ──────────────────────────────
 alphaS.addEventListener('input', () => {
