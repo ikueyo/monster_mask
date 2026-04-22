@@ -26,7 +26,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap');
 :root{
   --green:#00ff88;--blue:#00d4ff;--pink:#ff3cac;
-  --yellow:#ffe600;--orange:#ff7f00;
+  --yellow:#ffe600;--orange:#ff7f00;--red:#ff3344;
   --dark:#07071a;--border:rgba(255,255,255,0.12);
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -38,55 +38,67 @@ body::before{
 }
 #app{position:relative;z-index:1;width:100%;height:100%;display:flex;flex-direction:column;}
 /* header */
-#hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;border-bottom:1px solid var(--border);background:rgba(7,7,26,.9);gap:8px;}
+#hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;border-bottom:1px solid var(--border);background:rgba(7,7,26,.95);box-shadow:0 1px 0 rgba(0,255,136,.08),0 4px 20px rgba(0,255,136,.06);gap:8px;}
 #hdr h1{font-family:'Orbitron',monospace;font-size:clamp(.85rem,3vw,1.3rem);font-weight:900;letter-spacing:.06em;background:linear-gradient(90deg,var(--green),var(--blue),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap;}
-#version-badge{font-size:.6rem;font-weight:800;background:var(--pink);color:#fff;padding:2px 7px;border-radius:20px;flex-shrink:0;}
+#version-badge{font-size:.6rem;font-weight:800;background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.35);padding:2px 8px;border-radius:20px;flex-shrink:0;}
 /* status */
-#status-bar{display:flex;align-items:center;gap:7px;font-size:clamp(.62rem,1.8vw,.78rem);background:rgba(0,0,0,.3);padding:4px 12px;flex-shrink:0;border-bottom:1px solid var(--border);}
-#st-dot{width:9px;height:9px;border-radius:50%;background:#555;box-shadow:0 0 5px #555;flex-shrink:0;transition:background .3s,box-shadow .3s;}
+#status-bar{display:flex;align-items:center;gap:7px;font-size:clamp(.6rem,1.7vw,.74rem);background:rgba(0,0,0,.22);padding:3px 12px;flex-shrink:0;border-bottom:1px solid var(--border);}
+#st-dot{width:8px;height:8px;border-radius:50%;background:#555;box-shadow:0 0 5px #555;flex-shrink:0;transition:background .3s,box-shadow .3s;}
 #st-dot.green{background:var(--green);box-shadow:0 0 8px var(--green);}
 #st-dot.yellow{background:var(--yellow);box-shadow:0 0 8px var(--yellow);animation:blink .8s ease-in-out infinite;}
 #st-dot.red{background:#ff3344;box-shadow:0 0 8px #ff3344;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
-#st-txt{color:rgba(255,255,255,.75);flex:1;}
-#dbg-ball{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0;animation:bounce .55s ease-in-out infinite alternate;}
+#st-txt{color:rgba(255,255,255,.7);flex:1;}
+#dbg-ball{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0;animation:bounce .55s ease-in-out infinite alternate;}
 #dbg-ball.dead{background:#ff3344;animation:none;}
 @keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-5px);}}
 /* tabs */
-#tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--border);background:rgba(7,7,26,.9);}
-.tab{flex:1;padding:9px 4px;font-family:'Nunito',sans-serif;font-weight:800;font-size:clamp(.65rem,2vw,.82rem);background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;letter-spacing:.03em;border-bottom:2.5px solid transparent;transition:color .2s,border-color .2s;}
-.tab.active{color:#fff;border-bottom-color:var(--green);}
+#tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--border);background:rgba(7,7,26,.9);position:relative;padding-top:2px;}
+#tab-indicator{position:absolute;bottom:0;height:2.5px;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:3px 3px 0 0;transition:left .25s cubic-bezier(.34,1.56,.64,1),width .25s ease;pointer-events:none;z-index:2;}
+.tab{flex:1;padding:9px 4px 10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:clamp(.65rem,2vw,.82rem);background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;letter-spacing:.03em;transition:color .2s;position:relative;}
+.tab.active{color:#fff;}
 /* content */
 #content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 .panel{display:none;flex-direction:column;align-items:center;flex:1;overflow:hidden;width:100%;}
 .panel.active{display:flex;}
 /* canvas areas */
 #canvas-wrap,#det-canvas-wrap{flex:1;width:100%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:0;}
-/* AR controls */
-#ar-controls{flex-shrink:0;width:100%;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:7px;padding:8px 10px env(safe-area-inset-bottom,12px);background:rgba(7,7,26,.97);border-top:1px solid var(--border);}
+/* AR controls — column layout */
+#ar-controls{flex-shrink:0;width:100%;display:flex;flex-direction:column;gap:6px;padding:8px 12px env(safe-area-inset-bottom,12px);background:rgba(7,7,26,.97);border-top:1px solid var(--border);}
+.ctrl-row{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;}
+.ctrl-hero{padding:2px 0 0;}
 /* detect legend */
 #det-legend{flex-shrink:0;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:8px 10px env(safe-area-inset-bottom,10px);background:rgba(7,7,26,.97);border-top:1px solid var(--border);width:100%;}
 .legend-item{display:flex;align-items:center;gap:4px;font-size:clamp(.6rem,1.7vw,.72rem);background:rgba(255,255,255,.07);border-radius:20px;padding:3px 10px;}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-/* buttons */
-.btn{font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(.68rem,2.2vw,.85rem);border:none;border-radius:50px;padding:8px 16px;cursor:pointer;letter-spacing:.03em;transition:transform .12s,filter .12s;}
+/* buttons — base */
+.btn{font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(.68rem,2.2vw,.85rem);border-radius:50px;padding:8px 16px;cursor:pointer;letter-spacing:.03em;transition:transform .12s,filter .12s,box-shadow .15s;}
 .btn:active{transform:scale(.93);}
-.btn-green{background:linear-gradient(135deg,var(--green),#00aaff);color:var(--dark);}
-.btn-pink{background:linear-gradient(135deg,var(--pink),#ff6600);color:#fff;}
-.btn-yellow{background:linear-gradient(135deg,var(--yellow),var(--orange));color:var(--dark);}
-.btn-purple{background:linear-gradient(135deg,#9900ff,var(--blue));color:#fff;}
-.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);}
+.btn:not(.btn-ghost):hover{filter:brightness(1.1);transform:translateY(-1px);}
+/* hero capture button */
+.btn-capture{background:linear-gradient(135deg,var(--green),var(--blue));color:var(--dark);border:none;font-size:clamp(.82rem,2.6vw,1rem);font-weight:900;padding:11px 32px;box-shadow:0 0 18px rgba(0,255,136,.3);width:100%;}
+.btn-capture:hover{box-shadow:0 0 28px rgba(0,255,136,.55)!important;}
+/* secondary outline */
+.btn-secondary{background:transparent;color:var(--green);border:1.5px solid rgba(0,255,136,.45);}
+.btn-secondary:hover{background:rgba(0,255,136,.07);border-color:var(--green);}
+/* danger / stop */
+.btn-danger{background:transparent;color:#ff4455;border:1.5px solid rgba(255,50,60,.45);}
+.btn-danger:hover{background:rgba(255,50,60,.08);border-color:#ff4455;}
+/* ghost / loading */
+.btn-ghost{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.15);cursor:not-allowed;}
+/* keep for template panel */
+.btn-green{background:linear-gradient(135deg,var(--green),#00aaff);color:var(--dark);border:none;}
 /* alpha slider */
-#alpha-slider{-webkit-appearance:none;appearance:none;width:80px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);outline:none;cursor:pointer;}
-#alpha-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;}
+#alpha-slider{-webkit-appearance:none;appearance:none;flex:1;max-width:160px;height:4px;border-radius:2px;background:linear-gradient(90deg,rgba(0,255,136,.25),rgba(0,212,255,.5));outline:none;cursor:pointer;}
+#alpha-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;box-shadow:0 0 6px rgba(0,255,136,.5);}
 /* flash */
 #flash{position:fixed;inset:0;z-index:200;background:#fff;opacity:0;pointer-events:none;}
 #flash.pop{animation:flashAnim .35s ease-out forwards;}
 @keyframes flashAnim{0%{opacity:.9;}100%{opacity:0;}}
 /* snapshot */
 #snap-wrap{position:absolute;top:8px;right:8px;z-index:20;display:none;flex-direction:column;align-items:center;gap:4px;}
-#snap-img{width:80px;border-radius:10px;border:2px solid var(--yellow);}
-#btn-dl{font-size:.62rem;background:var(--yellow);color:var(--dark);border:none;border-radius:20px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;}
+#snap-img{width:80px;border-radius:10px;border:2px solid var(--green);}
+#btn-dl{font-size:.62rem;background:var(--green);color:var(--dark);border:none;border-radius:20px;padding:3px 10px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:800;}
 /* hidden video */
 #cam-video{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;}
 /* template panel */
@@ -105,27 +117,29 @@ body::before{
 #panel-template::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
 #file-input{display:none;}
 /* preset monsters */
-#preset-row{flex-shrink:0;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:5px 10px 3px;background:rgba(7,7,26,.97);}
-.preset-btn{font-size:1.25rem;width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;line-height:1;display:inline-flex;align-items:center;justify-content:center;}
-.preset-btn:hover{transform:scale(1.15);border-color:rgba(0,255,136,.5);}
-.preset-btn.active{border-color:var(--green);box-shadow:0 0 10px rgba(0,255,136,.4);background:rgba(0,255,136,.1);}
-.preset-label{font-size:.62rem;color:rgba(255,255,255,.32);letter-spacing:.02em;}
-/* alpha slider */
-.alpha-wrap{display:flex;align-items:center;gap:5px;}
-.alpha-label{font-size:.72rem;}
+#preset-row{flex-shrink:0;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px 4px;background:rgba(7,7,26,.97);}
+.preset-btn{width:52px;height:56px;border-radius:14px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .15s,border-color .15s,box-shadow .15s,background .15s;padding:0;}
+.preset-btn:hover{transform:scale(1.08);border-color:rgba(0,255,136,.5);background:rgba(0,255,136,.05);}
+.preset-btn.active{border-color:var(--green);box-shadow:0 0 12px rgba(0,255,136,.35);background:rgba(0,255,136,.1);}
+.preset-emoji{font-size:1.35rem;line-height:1;}
+.preset-name{font-size:.5rem;color:rgba(255,255,255,.5);letter-spacing:.02em;font-weight:800;}
+.preset-btn.active .preset-name{color:var(--green);}
+.preset-clear{width:34px;height:56px;font-size:.85rem;opacity:.5;}
+.preset-clear:hover{opacity:.85;border-color:rgba(255,50,50,.45);}
+/* alpha wrap */
+.alpha-wrap{display:flex;align-items:center;gap:6px;flex:1;max-width:280px;}
+.alpha-label{font-size:.78rem;}
 .alpha-val{font-size:.65rem;color:var(--green);font-weight:900;min-width:30px;text-align:right;}
 /* gallery */
 #gallery-wrap{flex-shrink:0;width:100%;padding:4px 10px 2px;background:rgba(7,7,26,.97);}
 #gallery-strip{display:flex;gap:6px;align-items:center;min-height:46px;overflow-x:auto;scrollbar-width:none;}
 #gallery-strip::-webkit-scrollbar{display:none;}
-.gallery-thumb{width:42px;height:42px;object-fit:cover;border-radius:7px;border:1.5px solid rgba(255,230,0,.4);cursor:pointer;flex-shrink:0;transition:transform .15s,border-color .15s;}
-.gallery-thumb:hover{transform:scale(1.12);border-color:var(--yellow);}
+.gallery-thumb{width:42px;height:42px;object-fit:cover;border-radius:7px;border:1.5px solid rgba(0,255,136,.3);cursor:pointer;flex-shrink:0;transition:transform .15s,border-color .15s;}
+.gallery-thumb:hover{transform:scale(1.12);border-color:var(--green);}
 .gallery-empty{font-size:.6rem;color:rgba(255,255,255,.3);}
 /* zone pills */
 .zone-legend{display:flex;flex-wrap:wrap;gap:5px;padding:6px 14px;justify-content:center;}
 .zone-pill{font-size:.62rem;padding:2px 9px;border-radius:20px;font-weight:700;border-width:1px;border-style:solid;}
-/* button hover lift */
-.btn:hover{filter:brightness(1.1) drop-shadow(0 0 5px rgba(255,255,255,.15));transform:translateY(-2px);}
 /* update banner */
 #update-bar{position:fixed;top:0;left:0;right:0;z-index:999;background:var(--green);color:var(--dark);text-align:center;padding:13px 16px;font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(.78rem,2.5vw,.92rem);cursor:pointer;transform:translateY(-100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);-webkit-tap-highlight-color:transparent;}
 #update-bar.show{transform:translateY(0);}
@@ -140,7 +154,7 @@ body::before{
 <div id="app">
   <div id="hdr">
     <h1>👾 怪物變身鏡</h1>
-    <span id="version-badge">v3.2</span>
+    <span id="version-badge">v3.3</span>
   </div>
   <div id="status-bar">
     <div id="st-dot"></div>
@@ -148,6 +162,7 @@ body::before{
     <div id="dbg-ball"></div>
   </div>
   <div id="tabs">
+    <div id="tab-indicator"></div>
     <button class="tab active" data-tab="ar">🎭 變身</button>
     <button class="tab" data-tab="template">🖍️ 設計</button>
     <button class="tab" data-tab="detect">🔬 AI 實驗室</button>
@@ -168,23 +183,40 @@ body::before{
         <div id="gallery-strip"><span class="gallery-empty">拍照後作品會顯示在這裡 📸</span></div>
       </div>
       <div id="preset-row">
-        <span class="preset-label">快速怪物：</span>
-        <button class="preset-btn" data-preset="devil"  title="😈 小惡魔">😈</button>
-        <button class="preset-btn" data-preset="robot"  title="🤖 機器人">🤖</button>
-        <button class="preset-btn" data-preset="alien"  title="👽 外星人">👽</button>
-        <button class="preset-btn" data-preset="skull"  title="💀 骷髏">💀</button>
-        <button class="preset-btn" data-preset="none"   title="清除怪物" style="font-size:.85rem;opacity:.55;">✕</button>
+        <button class="preset-btn" data-preset="devil" title="😈 小惡魔">
+          <span class="preset-emoji">😈</span>
+          <span class="preset-name">惡魔</span>
+        </button>
+        <button class="preset-btn" data-preset="robot" title="🤖 機器人">
+          <span class="preset-emoji">🤖</span>
+          <span class="preset-name">機器人</span>
+        </button>
+        <button class="preset-btn" data-preset="alien" title="👽 外星人">
+          <span class="preset-emoji">👽</span>
+          <span class="preset-name">外星人</span>
+        </button>
+        <button class="preset-btn" data-preset="skull" title="💀 骷髏">
+          <span class="preset-emoji">💀</span>
+          <span class="preset-name">骷髏</span>
+        </button>
+        <button class="preset-btn preset-clear" data-preset="none" title="清除怪物">✕</button>
       </div>
       <div id="ar-controls">
-        <button class="btn btn-green" id="btn-start">📷 啟動鏡頭</button>
-        <button class="btn btn-pink"  id="btn-upload">🎨 上傳怪物</button>
-        <button class="btn btn-yellow" id="btn-capture">📸 拍照</button>
-        <button class="btn btn-purple" id="btn-flip">🔄 翻轉</button>
-        <div class="alpha-wrap">
-          <span class="alpha-label">👻</span>
-          <input type="range" id="alpha-slider" min="30" max="255" value="210">
-          <span class="alpha-label">👾</span>
-          <span class="alpha-val" id="alpha-val">82%</span>
+        <div class="ctrl-row">
+          <button class="btn btn-secondary" id="btn-start">📷 啟動鏡頭</button>
+          <button class="btn btn-secondary" id="btn-upload">🎨 上傳怪物</button>
+          <button class="btn btn-secondary" id="btn-flip">🔄 翻轉</button>
+        </div>
+        <div class="ctrl-row ctrl-hero">
+          <button class="btn btn-capture" id="btn-capture">📸 拍照</button>
+        </div>
+        <div class="ctrl-row">
+          <div class="alpha-wrap">
+            <span class="alpha-label">👻</span>
+            <input type="range" id="alpha-slider" min="30" max="255" value="210">
+            <span class="alpha-label">👾</span>
+            <span class="alpha-val" id="alpha-val">82%</span>
+          </div>
         </div>
       </div>
     </div>
@@ -299,7 +331,7 @@ const btnStart = document.getElementById('btn-start');
 function updateCamBtn(state){
   if(state === 'idle'){
     btnStart.textContent = '📷 啟動鏡頭';
-    btnStart.className = 'btn btn-green';
+    btnStart.className = 'btn btn-secondary';
     btnStart.disabled = false;
   } else if(state === 'loading'){
     btnStart.textContent = '⏳ 啟動中…';
@@ -307,9 +339,18 @@ function updateCamBtn(state){
     btnStart.disabled = true;
   } else if(state === 'active'){
     btnStart.textContent = '⏹ 停止相機';
-    btnStart.className = 'btn btn-pink';
+    btnStart.className = 'btn btn-danger';
     btnStart.disabled = false;
   }
+}
+
+// ── Tab indicator ─────────────────────────────
+function updateTabIndicator(){
+  const active = document.querySelector('.tab.active');
+  const ind = document.getElementById('tab-indicator');
+  if(!active || !ind) return;
+  ind.style.left = active.offsetLeft + 'px';
+  ind.style.width = active.offsetWidth + 'px';
 }
 
 function stopCamera(){
@@ -359,6 +400,7 @@ function resizeCanvas(cnv){
 window.addEventListener('resize', () => {
   resizeCanvas(arCnv);
   resizeCanvas(detCnv);
+  updateTabIndicator();
 });
 resizeCanvas(arCnv);
 resizeCanvas(detCnv);
@@ -373,6 +415,7 @@ document.querySelectorAll('.tab').forEach(t => {
     document.getElementById('panel-'+activeTab).classList.add('active');
     resizeCanvas(arCnv);
     resizeCanvas(detCnv);
+    updateTabIndicator();
   });
 });
 
@@ -1276,6 +1319,7 @@ function clamp(a,v,b){return Math.min(b,Math.max(a,v));}
 
 // ── Init ──────────────────────────────────────
 renderGallery();
+updateTabIndicator();
 
 // ── Service Worker 註冊 + 自動更新提示 ──────────
 if('serviceWorker' in navigator){
